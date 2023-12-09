@@ -124,6 +124,13 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
     paint = Paint()..color = isHot ? Colors.red : Colors.blue;
 
     add(RectangleHitbox());
+
+    game.add(
+      Enemy(
+        isOnHotPlatform: isHot,
+        platform: this,
+      ),
+    );
     return super.onLoad();
   }
 }
@@ -131,8 +138,8 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCallbacks {
   Bullet({
     required this.direction,
+    required this.isHot,
     Vector2? position,
-    this.isHot = true,
   }) : super(
           position: position ?? Vector2(0, 0),
         );
@@ -144,6 +151,8 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   Future<void> onLoad() {
     size = Vector2(25, 25);
     paint = Paint()..color = isHot ? Colors.red : Colors.blue;
+
+    add(CircleHitbox());
     return super.onLoad();
   }
 
@@ -268,6 +277,44 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
     }
 
     super.onCollisionEnd(other);
+  }
+}
+
+class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+  Enemy({
+    required this.isOnHotPlatform,
+    required this.platform,
+  });
+
+  Direction direction = Direction.right;
+
+  final bool isOnHotPlatform;
+  final GamePlatform platform;
+
+  @override
+  FutureOr<void> onLoad() {
+    size = Vector2(50, 50);
+
+    position = Vector2(
+      platform.x + (platform.width - width) / 2,
+      platform.y - height * 2,
+    );
+
+    paint = Paint()..color = isOnHotPlatform ? Colors.red : Colors.blue;
+
+    add(RectangleHitbox());
+
+    return super.onLoad();
+  }
+
+  @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+    if (other is Bullet) {
+      if (other.isHot == isOnHotPlatform) {
+        removeFromParent();
+      }
+    }
+    super.onCollisionStart(intersectionPoints, other);
   }
 }
 
