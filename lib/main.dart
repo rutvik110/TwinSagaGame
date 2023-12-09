@@ -47,6 +47,9 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   late SpriteAnimation fireEnemyDeathAnimation;
   late SpriteAnimation fireBulletAnimation;
 
+  late SpriteAnimation playerFireAnimation;
+  late SpriteAnimation playerFireSparklesAnimation;
+
   @override
   Future<void> onLoad() async {
     await loadImages();
@@ -58,6 +61,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     enemyAnimation = atlas.getAnimation('enemy');
     fireEnemyDeathAnimation = atlas.getAnimation('fire_enemy_death_animation');
     fireBulletAnimation = atlas.getAnimation('fire_bullet_animation');
+    playerFireAnimation = atlas.getAnimation('player_fire_animation');
+    playerFireSparklesAnimation = atlas.getAnimation('player_fire_sparkles_animation');
 
     addAll([
       player,
@@ -297,7 +302,7 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   }
 }
 
-class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, CollisionCallbacks {
   PlayerComponent() : super(priority: 1);
 
   final double gravity = 1;
@@ -318,15 +323,31 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
 
   bool isOnHotPlatform = true;
 
+  late SpriteAnimationComponent playerSprite;
+
   @override
-  FutureOr<void> onLoad() {
+  Future<void> onLoad() {
     size = Vector2(50, 50);
 
-    paint = Paint()..color = const Color(0xFF00FF00);
+    paint = Paint()..color = Colors.transparent;
 
     groundYPos = game.size.y - height;
 
-    add(RectangleHitbox());
+    add(CircleHitbox());
+
+    playerSprite = SpriteAnimationComponent(
+      animation: game.playerFireAnimation,
+      size: size,
+    );
+
+    final playerFireSparklesAnimation = SpriteAnimationComponent(
+      animation: game.playerFireSparklesAnimation,
+      size: size,
+      position: Vector2(position.x, position.y - size.y),
+    );
+
+    add(playerSprite);
+    add(playerFireSparklesAnimation);
 
     return super.onLoad();
   }
