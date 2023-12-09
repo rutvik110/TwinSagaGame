@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:async' as async;
 import 'dart:developer';
+import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -140,12 +141,14 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
     required this.direction,
     required this.isHot,
     Vector2? position,
+    this.fireAngle,
   }) : super(
           position: position ?? Vector2(0, 0),
         );
 
   final bool isHot;
   final Direction direction;
+  final double? fireAngle;
 
   @override
   Future<void> onLoad() {
@@ -159,10 +162,28 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   @override
   void update(double dt) {
     super.update(dt);
+    final radius = dt * 500;
 
-    x += dt * 500 * (direction == Direction.right ? 1 : -1);
+    final angle = fireAngle;
 
-    if (x < 0 || x > game.size.x) {
+    if (angle != null) {
+      final playerCenter = game.player.center;
+      final bulletdirection = playerCenter - center;
+
+      // angle
+      var angle = atan2(bulletdirection.y, bulletdirection.x);
+
+      if (angle < 0) {
+        angle += 2 * pi;
+      }
+
+      x += radius * cos(angle);
+      y += radius * sin(angle);
+    } else {
+      x += radius * (direction == Direction.right ? 1 : -1);
+    }
+
+    if (x < 0 || x > game.size.x || y < 0 || y > game.size.y) {
       removeFromParent();
     }
   }
@@ -291,6 +312,8 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
   final bool isOnHotPlatform;
   final GamePlatform platform;
 
+  late Timer attackTimer;
+
   @override
   FutureOr<void> onLoad() {
     size = Vector2(50, 50);
@@ -302,15 +325,53 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
 
     paint = Paint()..color = isOnHotPlatform ? Colors.red : Colors.blue;
 
+    attackTimer = Timer(
+      3,
+      repeat: true,
+      onTick: () {
+        // find the bullet angle such that it's targeted
+        // towadrs player center
+        final bulletdirection = game.player.center - center;
+
+        // find the angle
+        final angle = atan2(bulletdirection.y, bulletdirection.x);
+        var dangle = atan2(game.player.center.y, game.player.center.x) - atan2(center.y, center.x);
+
+        if (dangle < 0.0) {
+          dangle += 2 * pi;
+        }
+
+        print('Angle-->${degrees(dangle)}');
+
+        // attach the player
+        final bullet = Bullet(
+          direction: direction,
+          isHot: isOnHotPlatform,
+          position: position,
+          fireAngle: dangle,
+        );
+
+        game.add(bullet);
+      },
+    );
+
+    attackTimer.start();
+
     add(RectangleHitbox());
 
     return super.onLoad();
   }
 
   @override
+  void update(double dt) {
+    attackTimer.update(dt);
+    super.update(dt);
+  }
+
+  @override
   void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
     if (other is Bullet) {
-      if (other.isHot == isOnHotPlatform) {
+      if (other.isHot != isOnHotPlatform) {
         removeFromParent();
       }
     }
@@ -330,3 +391,5 @@ enum PlayerState { crashed, jumping, running, waiting }
 enum RunningState { waiting, runningLeft, runningRight }
 
 final defaultPlatformSize = Vector2(200, 30);
+
+const degree = pi / 180;
