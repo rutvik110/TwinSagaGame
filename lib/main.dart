@@ -3,6 +3,7 @@ import 'dart:async' as async;
 import 'dart:developer';
 import 'dart:math';
 
+import 'package:flame/cache.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -21,19 +22,29 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
   @override
   // TODO: implement debugMode
-  bool get debugMode => true;
+  bool get debugMode => false;
 
   final player = PlayerComponent();
   final screenhitbox = ScreenHitbox();
 
   async.Timer timer = async.Timer(Duration.zero, () {});
 
+  Future<void> loadImages() async {
+    images = Images(prefix: '');
+    await images.loadAll([
+      'assets/platform_tiles/FireTiles/Fire_7_16x16.png',
+      'assets/platform_tiles/IceTiles/Ice_1_16x16.png',
+    ]);
+  }
+
   @override
   Future<void> onLoad() async {
+    await loadImages();
+
     addAll([
       player,
       GamePlatform(
-        size: Vector2(size.x, 25),
+        size: Vector2(size.x, defaultPlatformSize.y),
         position: Vector2(0, size.y - 25),
         enableEnemy: false,
       ),
@@ -126,6 +137,30 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   }
 }
 
+class PlatformBlock extends SpriteComponent with HasGameReference<MyGame> {
+  final Vector2 gridPosition;
+  double xOffset;
+
+  PlatformBlock({
+    required this.gridPosition,
+    required this.xOffset,
+    required this.isHot,
+  }) : super(size: Vector2.all(25), anchor: Anchor.topLeft);
+
+  final bool isHot;
+
+  @override
+  void onLoad() {
+    final platformImage = game.images.fromCache(
+      isHot ? 'assets/platform_tiles/FireTiles/Fire_7_16x16.png' : 'assets/platform_tiles/IceTiles/Ice_1_16x16.png',
+    );
+    sprite = Sprite(platformImage);
+    position = gridPosition;
+    position.x += xOffset;
+    add(RectangleHitbox(collisionType: CollisionType.passive));
+  }
+}
+
 class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
   GamePlatform({
     required Vector2 position,
@@ -141,7 +176,9 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 
   @override
   FutureOr<void> onLoad() {
-    paint = Paint()..color = isHot ? Colors.red : Colors.blue;
+    paint = Paint()
+      ..color = isHot ? Colors.red : Colors.blue
+      ..style = PaintingStyle.stroke;
 
     add(RectangleHitbox());
 
@@ -153,6 +190,19 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
         ),
       );
     }
+
+    final blocks = (size.x / 25).round();
+    final tiles = List.generate(
+      blocks,
+      (index) => PlatformBlock(
+        gridPosition: position,
+        xOffset: 25.0 * index,
+        isHot: isHot,
+      ),
+    );
+
+    game.addAll(tiles);
+
     return super.onLoad();
   }
 }

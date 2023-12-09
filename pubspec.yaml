@@ -29,3 +29,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: false
+
+  assets:
+    - assets/platform_tiles/FireTiles/
+    - assets/platform_tiles/IceTiles/
+    - assets/fire_effects_16_x_16.png
+    - assets/fire_1.fa
