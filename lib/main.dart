@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:async' as async;
 import 'dart:developer';
 
 import 'package:flame/collisions.dart';
@@ -7,10 +8,6 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-enum PlayerState { crashed, jumping, running, waiting }
-
-enum RunningState { waiting, runningLeft, runningRight }
 
 void main() {
   runApp(GameWidget(game: MyGame()));
@@ -27,12 +24,21 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   final player = PlayerComponent();
   final screenhitbox = ScreenHitbox();
 
+  async.Timer timer = async.Timer(Duration.zero, () {});
+
   @override
   Future<void> onLoad() async {
     addAll([
       player,
-      screenhitbox,
-      GamePlatform(),
+      GamePlatform(
+        size: defaultPlatformSize,
+        position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 200),
+        isHot: false,
+      ),
+      GamePlatform(
+        size: Vector2(size.x, 25),
+        position: Vector2(0, size.y - 25),
+      ),
     ]);
     return super.onLoad();
   }
@@ -60,18 +66,41 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     }
 
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      log('arrowLeft');
       if (event is RawKeyUpEvent) {
         player.runningState = RunningState.waiting;
       } else {
         player.runningState = RunningState.runningLeft;
+        player.direction = Direction.left;
       }
     }
+
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
       if (event is RawKeyUpEvent) {
         player.runningState = RunningState.waiting;
       } else {
         player.runningState = RunningState.runningRight;
+        player.direction = Direction.right;
+      }
+    }
+
+    if (keysPressed.contains(LogicalKeyboardKey.shiftLeft) ||
+        keysPressed.contains(LogicalKeyboardKey.shiftRight) ||
+        event.logicalKey == LogicalKeyboardKey.shiftLeft ||
+        event.logicalKey == LogicalKeyboardKey.shiftRight) {
+      if (event is RawKeyUpEvent && !event.isShiftPressed) {
+        if (!timer.isActive) {
+          add(
+            Bullet(
+              position: Vector2(
+                player.direction == Direction.right ? player.x + player.width : player.x,
+                player.y + (player.height - 25) / 2,
+              ),
+              direction: player.direction,
+              isHot: player.isOnHotPlatform,
+            ),
+          );
+          timer = async.Timer(const Duration(milliseconds: 300), () {});
+        }
       }
     }
 
@@ -80,15 +109,53 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 }
 
 class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+  GamePlatform({
+    required Vector2 position,
+    required Vector2 size,
+    this.isHot = true,
+  }) : super(
+          size: size,
+          position: position,
+        );
+  final bool isHot;
+
   @override
   FutureOr<void> onLoad() {
-    size = Vector2(200, 25);
-    paint = Paint()..color = const Color(0xFF0000FF);
-
-    position = Vector2(game.size.x / 2 - width / 2, game.size.y - 200);
+    paint = Paint()..color = isHot ? Colors.red : Colors.blue;
 
     add(RectangleHitbox());
     return super.onLoad();
+  }
+}
+
+class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+  Bullet({
+    required this.direction,
+    Vector2? position,
+    this.isHot = true,
+  }) : super(
+          position: position ?? Vector2(0, 0),
+        );
+
+  final bool isHot;
+  final Direction direction;
+
+  @override
+  Future<void> onLoad() {
+    size = Vector2(25, 25);
+    paint = Paint()..color = isHot ? Colors.red : Colors.blue;
+    return super.onLoad();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    x += dt * 500 * (direction == Direction.right ? 1 : -1);
+
+    if (x < 0 || x > game.size.x) {
+      removeFromParent();
+    }
   }
 }
 
@@ -108,6 +175,10 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
   RunningState runningState = RunningState.waiting;
 
   late double groundYPos;
+
+  Direction direction = Direction.right;
+
+  bool isOnHotPlatform = true;
 
   @override
   FutureOr<void> onLoad() {
@@ -181,6 +252,8 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
   @override
   void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
     if (other is GamePlatform) {
+      isOnHotPlatform = other.isHot;
+
       if ((position.y + height) <= (other.y + other.height)) {
         groundYPos = other.y - height;
       }
@@ -197,3 +270,16 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
     super.onCollisionEnd(other);
   }
 }
+
+enum Direction {
+  left,
+  right,
+  top,
+  bottom;
+}
+
+enum PlayerState { crashed, jumping, running, waiting }
+
+enum RunningState { waiting, runningLeft, runningRight }
+
+final defaultPlatformSize = Vector2(200, 30);
