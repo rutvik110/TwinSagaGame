@@ -84,6 +84,18 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
       }
     }
 
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (event is RawKeyDownEvent) {
+        player.direction = Direction.top;
+      }
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (event is RawKeyDownEvent) {
+        player.direction = Direction.bottom;
+      }
+    }
+
     if (keysPressed.contains(LogicalKeyboardKey.shiftLeft) ||
         keysPressed.contains(LogicalKeyboardKey.shiftRight) ||
         event.logicalKey == LogicalKeyboardKey.shiftLeft ||
@@ -92,12 +104,10 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
         if (!timer.isActive) {
           add(
             Bullet(
-              position: Vector2(
-                player.direction == Direction.right ? player.x + player.width : player.x,
-                player.y + (player.height - 25) / 2,
-              ),
+              position: player.center - Vector2(12.5, 12.5),
               direction: player.direction,
               isHot: player.isOnHotPlatform,
+              fireAngle: player.direction.angleInRadians,
             ),
           );
           timer = async.Timer(const Duration(milliseconds: 300), () {});
@@ -140,15 +150,15 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   Bullet({
     required this.direction,
     required this.isHot,
+    required this.fireAngle,
     Vector2? position,
-    this.fireAngle,
   }) : super(
           position: position ?? Vector2(0, 0),
         );
 
   final bool isHot;
   final Direction direction;
-  final double? fireAngle;
+  final double fireAngle;
 
   @override
   Future<void> onLoad() {
@@ -166,12 +176,12 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
 
     final angle = fireAngle;
 
-    if (angle != null) {
-      x += radius * cos(angle);
-      y += radius * sin(angle);
-    } else {
-      x += radius * (direction == Direction.right ? 1 : -1);
-    }
+    // if (angle != null) {
+    x += radius * cos(angle);
+    y += radius * sin(angle);
+    // } else {
+    //   x += radius * (direction == Direction.right ? 1 : -1);
+    // }
 
     if (x < 0 || x > game.size.x || y < 0 || y > game.size.y) {
       removeFromParent();
@@ -368,6 +378,19 @@ enum Direction {
   right,
   top,
   bottom;
+
+  double get angleInRadians {
+    switch (this) {
+      case Direction.right:
+        return 0;
+      case Direction.bottom:
+        return pi / 2;
+      case Direction.left:
+        return pi;
+      case Direction.top:
+        return 3 * pi / 2;
+    }
+  }
 }
 
 enum PlayerState { crashed, jumping, running, waiting }
