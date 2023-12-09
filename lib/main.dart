@@ -42,27 +42,37 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     RawKeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    if (event is RawKeyUpEvent) {
-      // let it jump untill jumpvelocity is zero
-      if (player.jumpVelocity != 0) {
-        player.current = PlayerState.jumping;
-      } else {
-        player.current = PlayerState.waiting;
-        player.runningState = RunningState.waiting;
-      }
-
-      return KeyEventResult.handled;
-    }
-
     if (keysPressed.contains(LogicalKeyboardKey.enter) || keysPressed.contains(LogicalKeyboardKey.space)) {
+      //   if (event is RawKeyUpEvent) {
+      //   // let it jump untill jumpvelocity is zero
+      //   if (player.jumpVelocity != 0) {
+      //     player.current = PlayerState.jumping;
+      //   } else {
+      //     player.current = PlayerState.waiting;
+      //     player.runningState = RunningState.waiting;
+      //   }
+
+      //   player.runningState = RunningState.waiting;
+
+      //   return KeyEventResult.handled;
+      // }
       player.jump();
     }
 
-    if (keysPressed.contains(LogicalKeyboardKey.arrowLeft)) {
-      player.runningState = RunningState.runningLeft;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      log('arrowLeft');
+      if (event is RawKeyUpEvent) {
+        player.runningState = RunningState.waiting;
+      } else {
+        player.runningState = RunningState.runningLeft;
+      }
     }
-    if (keysPressed.contains(LogicalKeyboardKey.arrowRight)) {
-      player.runningState = RunningState.runningRight;
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (event is RawKeyUpEvent) {
+        player.runningState = RunningState.waiting;
+      } else {
+        player.runningState = RunningState.runningRight;
+      }
     }
 
     return KeyEventResult.handled;
@@ -118,7 +128,7 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
     }
 
     current = PlayerState.jumping;
-    jumpVelocity = initialJumpVelocity - (50 / 500);
+    jumpVelocity = initialJumpVelocity - 8;
   }
 
   void reset() {
@@ -130,16 +140,30 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
   @override
   void update(double dt) {
     super.update(dt);
+    final newplacement = y + jumpVelocity;
+    jumpVelocity += gravity;
+
+    if (newplacement < groundYPos) {
+      y = newplacement;
+    } else {
+      reset();
+    }
+
     if (current == PlayerState.jumping) {
       y += jumpVelocity;
       jumpVelocity += gravity;
-
       if (y > groundYPos) {
         reset();
       }
-    } else {
-      y = groundYPos;
     }
+
+    // else {
+    //   y += jumpVelocity;
+    //   jumpVelocity += gravity;
+    //   if ((position.y + height) >= groundYPos) {
+    //     y = groundYPos;
+    //   }
+    // }
 
     if (runningState == RunningState.runningRight) {
       if (x < game.size.x - width) {
