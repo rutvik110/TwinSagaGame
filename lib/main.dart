@@ -1,13 +1,18 @@
+// ignore_for_file: flutter_style_todos
+
 import 'dart:async';
 import 'dart:async' as async;
 import 'dart:developer';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flame/cache.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame/rendering.dart';
+import 'package:flame_fire_atlas/flame_fire_atlas.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,9 +42,22 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     ]);
   }
 
+  late SpriteAnimation fireanimation;
+  late SpriteAnimation enemyAnimation;
+  late SpriteAnimation fireEnemyDeathAnimation;
+  late SpriteAnimation fireBulletAnimation;
+
   @override
   Future<void> onLoad() async {
     await loadImages();
+
+    final atlas = await FireAtlas.loadAsset('fire_effects.fa');
+
+    // Some plain sprites
+    fireanimation = atlas.getAnimation('fire_2');
+    enemyAnimation = atlas.getAnimation('enemy');
+    fireEnemyDeathAnimation = atlas.getAnimation('fire_enemy_death_animation');
+    fireBulletAnimation = atlas.getAnimation('fire_bullet_animation');
 
     addAll([
       player,
@@ -122,7 +140,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
         if (!timer.isActive) {
           add(
             Bullet(
-              position: player.center - Vector2(12.5, 12.5),
+              position: player.center - Vector2(12.5, 12.5) * player.direction.directionVector,
               direction: player.direction,
               isHot: player.isOnHotPlatform,
               fireAngle: player.direction.angleInRadians,
@@ -203,6 +221,23 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 
     game.addAll(tiles);
 
+    if (isHot) {
+      // lay the platform start/end flame
+      final torch1 = SpriteAnimationComponent(
+        animation: game.fireanimation,
+        position: Vector2(position.x, position.y - height),
+      );
+      final torch2 = SpriteAnimationComponent(
+        animation: game.fireanimation,
+        position: Vector2(position.x + width - 16, position.y - height),
+      );
+
+      game.addAll([
+        torch1,
+        torch2,
+      ]);
+    }
+
     return super.onLoad();
   }
 }
@@ -220,32 +255,44 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   final bool isHot;
   final Direction direction;
   final double fireAngle;
+  late final SpriteAnimationComponent bullet;
 
   @override
   Future<void> onLoad() {
     size = Vector2(25, 25);
-    paint = Paint()..color = isHot ? Colors.red : Colors.blue;
+    paint = Paint()..color = Colors.transparent;
 
     add(CircleHitbox());
+
+    bullet = SpriteAnimationComponent(
+      // TODO: Update for ICE
+      animation: isHot ? game.fireBulletAnimation : game.fireBulletAnimation,
+      size: size,
+    );
+
+    add(
+      bullet,
+    );
+
     return super.onLoad();
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    final radius = dt * 500;
+    final radius = dt * 300;
 
     final angle = fireAngle;
 
     // if (angle != null) {
     x += radius * cos(angle);
     y += radius * sin(angle);
-    // } else {
-    //   x += radius * (direction == Direction.right ? 1 : -1);
-    // }
+
+    this.angle = angle - pi / 2;
 
     if (x < 0 || x > game.size.x || y < 0 || y > game.size.y) {
       removeFromParent();
+      bullet.removeFromParent();
     }
   }
 }
@@ -354,7 +401,7 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
   }
 }
 
-class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCallbacks {
   Enemy({
     required this.isOnHotPlatform,
     required this.platform,
@@ -368,7 +415,7 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
   late Timer attackTimer;
 
   @override
-  FutureOr<void> onLoad() {
+  Future<void> onLoad() {
     size = Vector2(50, 50);
 
     position = Vector2(
@@ -376,7 +423,7 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
       platform.y - height * 2,
     );
 
-    paint = Paint()..color = isOnHotPlatform ? Colors.red : Colors.blue;
+    paint = Paint()..color = Colors.transparent;
 
     attackTimer = Timer(
       1.0 + 1.1 * Random().nextDouble(),
@@ -404,7 +451,15 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
 
     attackTimer.start();
 
-    add(RectangleHitbox());
+    add(CircleHitbox());
+
+    final enemy = SpriteAnimationComponent(
+      // TODO: Update for ICE
+      animation: isOnHotPlatform ? game.enemyAnimation : game.enemyAnimation,
+      size: size,
+    );
+
+    add(enemy);
 
     return super.onLoad();
   }
@@ -420,6 +475,16 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
     if (other is Bullet) {
       if (other.isHot != isOnHotPlatform) {
         removeFromParent();
+
+        game.add(
+          SpriteAnimationComponent(
+            // TODO: Update for ICE
+            animation: isOnHotPlatform ? game.fireEnemyDeathAnimation : game.fireEnemyDeathAnimation,
+            position: position,
+            size: size,
+            removeOnFinish: true,
+          ),
+        );
       }
     }
     super.onCollisionStart(intersectionPoints, other);
@@ -442,6 +507,19 @@ enum Direction {
         return pi;
       case Direction.top:
         return 3 * pi / 2;
+    }
+  }
+
+  double get directionVector {
+    switch (this) {
+      case Direction.right:
+        return -1;
+      case Direction.bottom:
+        return 1;
+      case Direction.left:
+        return 1;
+      case Direction.top:
+        return -1;
     }
   }
 }
