@@ -19,13 +19,21 @@ void main() {
 class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKeyboardHandlerComponents {
   @override
   Color backgroundColor() => const Color(0x00000000);
+
+  @override
+  // TODO: implement debugMode
+  bool get debugMode => true;
+
   final player = PlayerComponent();
   final screenhitbox = ScreenHitbox();
 
   @override
   Future<void> onLoad() async {
-    add(player);
-    add(screenhitbox);
+    addAll([
+      player,
+      screenhitbox,
+      GamePlatform(),
+    ]);
     return super.onLoad();
   }
 
@@ -47,7 +55,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     }
 
     if (keysPressed.contains(LogicalKeyboardKey.enter) || keysPressed.contains(LogicalKeyboardKey.space)) {
-      player.jump(0);
+      player.jump();
     }
 
     if (keysPressed.contains(LogicalKeyboardKey.arrowLeft)) {
@@ -61,6 +69,19 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   }
 }
 
+class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
+  @override
+  FutureOr<void> onLoad() {
+    size = Vector2(200, 25);
+    paint = Paint()..color = const Color(0xFF0000FF);
+
+    position = Vector2(game.size.x / 2 - width / 2, game.size.y - 200);
+
+    add(RectangleHitbox());
+    return super.onLoad();
+  }
+}
+
 class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, CollisionCallbacks {
   PlayerComponent() : super(priority: 1);
 
@@ -69,15 +90,14 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
   final double initialJumpVelocity = -15.0;
   final double introDuration = 1500.0;
   final double startXPosition = 50;
+  final double currentSpeed = 300;
 
   double jumpVelocity = 0.0;
 
   PlayerState current = PlayerState.waiting;
   RunningState runningState = RunningState.waiting;
 
-  double get groundYPos {
-    return game.size.y - height;
-  }
+  late double groundYPos;
 
   @override
   FutureOr<void> onLoad() {
@@ -85,16 +105,20 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
 
     paint = Paint()..color = const Color(0xFF00FF00);
 
+    groundYPos = game.size.y - height;
+
+    add(RectangleHitbox());
+
     return super.onLoad();
   }
 
-  void jump(double speed) {
+  void jump() {
     if (current == PlayerState.jumping) {
       return;
     }
 
     current = PlayerState.jumping;
-    jumpVelocity = initialJumpVelocity - (speed / 500);
+    jumpVelocity = initialJumpVelocity - (50 / 500);
   }
 
   void reset() {
@@ -119,14 +143,33 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
 
     if (runningState == RunningState.runningRight) {
       if (x < game.size.x - width) {
-        x += (startXPosition / introDuration) * dt * 5000;
+        x += dt * currentSpeed;
       }
     }
 
     if (runningState == RunningState.runningLeft) {
       if (x > 0) {
-        x -= (startXPosition / introDuration) * dt * 5000;
+        x -= dt * currentSpeed;
       }
     }
+  }
+
+  @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+    if (other is GamePlatform) {
+      if ((position.y + height) <= (other.y + other.height)) {
+        groundYPos = other.y - height;
+      }
+    }
+    super.onCollisionStart(intersectionPoints, other);
+  }
+
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    if (other is GamePlatform) {
+      groundYPos = game.size.y - height;
+    }
+
+    super.onCollisionEnd(other);
   }
 }
