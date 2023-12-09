@@ -39,6 +39,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     await images.loadAll([
       'assets/platform_tiles/FireTiles/Fire_7_16x16.png',
       'assets/platform_tiles/IceTiles/Ice_1_16x16.png',
+      'assets/platform_tiles/IceTiles/Ice_23_16x16.png',
     ]);
   }
 
@@ -50,11 +51,14 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   late SpriteAnimation playerFireAnimation;
   late SpriteAnimation playerFireSparklesAnimation;
 
+  late SpriteAnimation icePlatformAnimation;
+
   @override
   Future<void> onLoad() async {
     await loadImages();
 
     final atlas = await FireAtlas.loadAsset('fire_effects.fa');
+    final waterEffects = await FireAtlas.loadAsset('water_effects.fa');
 
     // Some plain sprites
     fireanimation = atlas.getAnimation('fire_2');
@@ -63,6 +67,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     fireBulletAnimation = atlas.getAnimation('fire_bullet_animation');
     playerFireAnimation = atlas.getAnimation('player_fire_animation');
     playerFireSparklesAnimation = atlas.getAnimation('player_fire_sparkles_animation');
+
+    icePlatformAnimation = waterEffects.getAnimation('ice_platform_animation');
 
     addAll([
       player,
@@ -180,6 +186,7 @@ class PlatformBlock extends SpriteComponent with HasGameReference<MyGame> {
     sprite = Sprite(platformImage);
     position = gridPosition;
     position.x += xOffset;
+
     add(RectangleHitbox(collisionType: CollisionType.passive));
   }
 }
@@ -196,6 +203,8 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
         );
   final bool isHot;
   final bool enableEnemy;
+
+  late final List<SpriteAnimationComponent> snowFlakes;
 
   @override
   FutureOr<void> onLoad() {
@@ -226,24 +235,55 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 
     game.addAll(tiles);
 
-    if (isHot) {
-      // lay the platform start/end flame
-      final torch1 = SpriteAnimationComponent(
-        animation: game.fireanimation,
-        position: Vector2(position.x, position.y - height),
-      );
-      final torch2 = SpriteAnimationComponent(
-        animation: game.fireanimation,
-        position: Vector2(position.x + width - 16, position.y - height),
+    // lay the platform start/end flame
+    final torch1 = SpriteAnimationComponent(
+      animation: isHot ? game.fireanimation : game.icePlatformAnimation,
+      position: Vector2(position.x, position.y - height),
+    );
+    final torch2 = SpriteAnimationComponent(
+      animation: isHot ? game.fireanimation : game.icePlatformAnimation,
+      position: Vector2(position.x + width - 16, position.y - height),
+    );
+
+    game.addAll([
+      torch1,
+      torch2,
+    ]);
+
+    if (!isHot) {
+      snowFlakes = List<SpriteAnimationComponent>.generate(
+        15,
+        (index) => SpriteAnimationComponent(
+          animation: game.icePlatformAnimation,
+          position: Vector2(
+            position.x + Random().nextDouble() * width,
+            position.y - Random().nextDouble() * 200,
+          ),
+        ),
       );
 
-      game.addAll([
-        torch1,
-        torch2,
-      ]);
+      game.addAll(snowFlakes);
     }
 
     return super.onLoad();
+  }
+
+  @override
+  void update(double dt) {
+    if (!isHot) {
+      for (final snowFlake in snowFlakes) {
+        snowFlake.position.y += dt * 10;
+
+        if (snowFlake.y > (position.y - snowFlake.height / 2)) {
+          snowFlake.position = Vector2(
+            position.x + Random().nextDouble() * width,
+            position.y - Random().nextDouble() * 200,
+          );
+        }
+      }
+    }
+
+    super.update(dt);
   }
 }
 
