@@ -7,6 +7,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -32,13 +33,31 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     addAll([
       player,
       GamePlatform(
+        size: Vector2(size.x, 25),
+        position: Vector2(0, size.y - 25),
+        enableEnemy: false,
+      ),
+      GamePlatform(
         size: defaultPlatformSize,
         position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 200),
         isHot: false,
+        enableEnemy: true,
       ),
       GamePlatform(
-        size: Vector2(size.x, 25),
-        position: Vector2(0, size.y - 25),
+        size: defaultPlatformSize,
+        position: Vector2(size.x / 2 - (defaultPlatformSize.x) * 2, size.y - 400),
+        enableEnemy: true,
+      ),
+      GamePlatform(
+        size: defaultPlatformSize,
+        position: Vector2(size.x / 2 + (defaultPlatformSize.x), size.y - 400),
+        enableEnemy: true,
+      ),
+      GamePlatform(
+        size: defaultPlatformSize,
+        position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 600),
+        isHot: false,
+        enableEnemy: true,
       ),
     ]);
     return super.onLoad();
@@ -49,7 +68,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     RawKeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    if (keysPressed.contains(LogicalKeyboardKey.enter) || keysPressed.contains(LogicalKeyboardKey.space)) {
+    if (keysPressed.contains(LogicalKeyboardKey.space) || event.isKeyPressed(LogicalKeyboardKey.space)) {
+      print('Jump');
       player.jump();
     }
 
@@ -87,7 +107,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
         keysPressed.contains(LogicalKeyboardKey.shiftRight) ||
         event.logicalKey == LogicalKeyboardKey.shiftLeft ||
         event.logicalKey == LogicalKeyboardKey.shiftRight) {
-      if (event is RawKeyUpEvent && !event.isShiftPressed) {
+      if (event is RawKeyDownEvent) {
         if (!timer.isActive) {
           add(
             Bullet(
@@ -110,12 +130,14 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
   GamePlatform({
     required Vector2 position,
     required Vector2 size,
+    required this.enableEnemy,
     this.isHot = true,
   }) : super(
           size: size,
           position: position,
         );
   final bool isHot;
+  final bool enableEnemy;
 
   @override
   FutureOr<void> onLoad() {
@@ -123,12 +145,14 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 
     add(RectangleHitbox());
 
-    game.add(
-      Enemy(
-        isOnHotPlatform: isHot,
-        platform: this,
-      ),
-    );
+    if (enableEnemy) {
+      game.add(
+        Enemy(
+          isOnHotPlatform: isHot,
+          platform: this,
+        ),
+      );
+    }
     return super.onLoad();
   }
 }
@@ -199,7 +223,7 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
 
   @override
   FutureOr<void> onLoad() {
-    size = Vector2(100, 100);
+    size = Vector2(50, 50);
 
     paint = Paint()..color = const Color(0xFF00FF00);
 
@@ -305,7 +329,7 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
     paint = Paint()..color = isOnHotPlatform ? Colors.red : Colors.blue;
 
     attackTimer = Timer(
-      1.5,
+      1.0 + 1.1 * Random().nextDouble(),
       repeat: true,
       onTick: () {
         final playerCenter = game.player.center;
