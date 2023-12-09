@@ -258,14 +258,6 @@ class PlayerComponent extends RectangleComponent with HasGameReference<MyGame>, 
       }
     }
 
-    // else {
-    //   y += jumpVelocity;
-    //   jumpVelocity += gravity;
-    //   if ((position.y + height) >= groundYPos) {
-    //     y = groundYPos;
-    //   }
-    // }
-
     if (runningState == RunningState.runningRight) {
       if (x < game.size.x - width) {
         x += dt * currentSpeed;
@@ -326,7 +318,7 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
     paint = Paint()..color = isOnHotPlatform ? Colors.red : Colors.blue;
 
     attackTimer = Timer(
-      3,
+      1.5,
       repeat: true,
       onTick: () {
         final playerCenter = game.player.center;
