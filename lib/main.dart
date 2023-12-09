@@ -167,16 +167,6 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
     final angle = fireAngle;
 
     if (angle != null) {
-      final playerCenter = game.player.center;
-      final bulletdirection = playerCenter - center;
-
-      // angle
-      var angle = atan2(bulletdirection.y, bulletdirection.x);
-
-      if (angle < 0) {
-        angle += 2 * pi;
-      }
-
       x += radius * cos(angle);
       y += radius * sin(angle);
     } else {
@@ -329,26 +319,20 @@ class Enemy extends RectangleComponent with HasGameReference<MyGame>, CollisionC
       3,
       repeat: true,
       onTick: () {
-        // find the bullet angle such that it's targeted
-        // towadrs player center
-        final bulletdirection = game.player.center - center;
+        final playerCenter = game.player.center;
+        final bulletdirection = playerCenter - center;
 
-        // find the angle
-        final angle = atan2(bulletdirection.y, bulletdirection.x);
-        var dangle = atan2(game.player.center.y, game.player.center.x) - atan2(center.y, center.x);
+        var angle = atan2(bulletdirection.y, bulletdirection.x);
 
-        if (dangle < 0.0) {
-          dangle += 2 * pi;
+        if (angle < 0) {
+          angle += 2 * pi;
         }
 
-        print('Angle-->${degrees(dangle)}');
-
-        // attach the player
         final bullet = Bullet(
           direction: direction,
           isHot: isOnHotPlatform,
           position: position,
-          fireAngle: dangle,
+          fireAngle: angle,
         );
 
         game.add(bullet);
