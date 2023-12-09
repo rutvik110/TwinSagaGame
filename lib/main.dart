@@ -50,19 +50,6 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     Set<LogicalKeyboardKey> keysPressed,
   ) {
     if (keysPressed.contains(LogicalKeyboardKey.enter) || keysPressed.contains(LogicalKeyboardKey.space)) {
-      //   if (event is RawKeyUpEvent) {
-      //   // let it jump untill jumpvelocity is zero
-      //   if (player.jumpVelocity != 0) {
-      //     player.current = PlayerState.jumping;
-      //   } else {
-      //     player.current = PlayerState.waiting;
-      //     player.runningState = RunningState.waiting;
-      //   }
-
-      //   player.runningState = RunningState.waiting;
-
-      //   return KeyEventResult.handled;
-      // }
       player.jump();
     }
 
