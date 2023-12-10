@@ -540,27 +540,41 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     if (other is Bullet && !other.isPlayerBullet) {
       if (stopAttacksTimer.isActive) return;
 
-      final healthBar = game.children.singleWhere((element) => element is HealthBar);
+      // final healthBar = game.children.singleWhere((element) => element is HealthBar);
 
-      if (healthBar.children.isNotEmpty) {
-        // end game
-        final heart = healthBar.children.last as SpriteAnimationComponent;
+      if (true) {
+        // // end game
+        // final heart = healthBar.children.last as SpriteAnimationComponent;
 
-        final dieOutAnimation = SpriteAnimationComponent(
-          animation: game.heartDieAnimation,
-          size: heart.size,
-          position: heart.position,
-          removeOnFinish: true,
-        );
+        // final dieOutAnimation = SpriteAnimationComponent(
+        //   animation: game.heartDieAnimation,
+        //   size: heart.size,
+        //   position: heart.position,
+        //   removeOnFinish: true,
+        // );
 
-        heart.removeFromParent();
-        healthBar.add(dieOutAnimation);
+        // healthBar.remove(heart);
+        // healthBar.add(dieOutAnimation);
 
         stopAttacksTimer = async.Timer(const Duration(milliseconds: 1100), () {});
 
-        if (healthBar.children.isEmpty) {
-          //end game
-        }
+        playerSprite.add(
+          FlashEffect(
+            EffectController(
+              duration: 3,
+              curve: Curves.bounceInOut,
+            ),
+          ),
+        );
+
+        playerFireSparklesAnimation.add(
+          FlashEffect(
+            EffectController(
+              duration: 3,
+              curve: Curves.bounceInOut,
+            ),
+          ),
+        );
       }
     }
 
@@ -574,6 +588,41 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     }
 
     super.onCollisionEnd(other);
+  }
+}
+
+class FlashEffect extends ComponentEffect<HasPaint> {
+  FlashEffect(super.controller);
+
+  ColorFilter? _original;
+
+  @override
+  void apply(double progress) {
+    final randomOpacity = Random().nextDouble();
+    target.opacity = randomOpacity;
+    final currentColor = Colors.white.withOpacity(
+      // Currently there is a bug when opacity is 0 in the color filter.
+      // "Expected a value of type 'SkDeletable', but got one of type 'Null'"
+      // https://github.com/flutter/flutter/issues/89433
+      max(randomOpacity * 0.5, 1 / 255),
+    );
+
+    target.tint(currentColor);
+  }
+
+  @override
+  Future<void> onMount() async {
+    super.onMount();
+
+    _original = target.getPaint().colorFilter;
+  }
+
+  @override
+  void onFinish() {
+    target.opacity = 1;
+    target.getPaint().colorFilter = _original;
+    removeFromParent();
+    super.onFinish();
   }
 }
 
