@@ -644,7 +644,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
 
         FlameAudio.play('player_final_death.wav');
 
-        stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
+        stopAttacksTimer = async.Timer(const Duration(milliseconds: 1000), () {
           if (endGame) {
             game.overlays.add(diedOverlayIdentifier);
           }
