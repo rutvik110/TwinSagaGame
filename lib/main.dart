@@ -35,26 +35,6 @@ void main() async {
 
   runApp(
     GameWidget(
-      // backgroundBuilder: (context) {
-      //   return Positioned.fill(
-      //     child: ShaderMask(
-      //       shaderCallback: (rect) {
-      //         return const LinearGradient(
-      //           colors: [
-      //             Colors.black,
-      //             Colors.black45,
-      //           ],
-      //         ).createShader(
-      //           rect,
-      //         );
-      //       },
-      //       child: Image.asset(
-      //         'assets/game_bg.png',
-      //         fit: BoxFit.cover,
-      //       ),
-      //     ),
-      //   );
-      // },
       game: MyGame(),
       overlayBuilderMap: {
         diedOverlayIdentifier: (context, game) {
@@ -87,7 +67,7 @@ void main() async {
 
 class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKeyboardHandlerComponents {
   @override
-  Color backgroundColor() => const Color(0x00000000);
+  Color backgroundColor() => const Color.fromARGB(0, 0, 0, 0);
 
   @override
   // TODO: implement debugMode
@@ -156,8 +136,24 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     add(HealthBar());
   }
 
+  async.Timer resizeTimer = async.Timer(const Duration(), () {});
+  @override
+  void onGameResize(Vector2 size) {
+    if (isLoaded) {
+      resizeTimer.cancel();
+      resizeTimer = async.Timer(const Duration(milliseconds: 100), () {
+        loadNewLevel(1, levelOne(this));
+      });
+    }
+    super.onGameResize(size);
+  }
+
+  @override
+  bool isLoaded = false;
+
   @override
   Future<void> onLoad() async {
+    isLoaded = true;
     FlameAudio.loop(
       'bg_music.wav',
       volume: 0.4,
