@@ -738,7 +738,7 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
   @override
   void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
     if (other is Bullet) {
-      if (other.isHot != isOnHotPlatform) {
+      if (other.isHot != isOnHotPlatform && other.isPlayerBullet) {
         removeFromParent();
 
         game.add(
