@@ -160,7 +160,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
     loadNewLevel(levelOne(this));
     overlays.add(filterOverlay);
-    // overlays.add(startMenu);
+    overlays.add(startMenu);
 
     return super.onLoad();
   }
@@ -573,6 +573,11 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
   @override
   void update(double dt) {
     super.update(dt);
+
+    if (!game.startGame) {
+      return;
+    }
+
     final newplacement = y + jumpVelocity;
     jumpVelocity += gravity;
 
@@ -641,7 +646,6 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
           if (endGame) {
             game.overlays.add(diedOverlayIdentifier);
-            game.paused = true;
           }
         });
 
@@ -932,82 +936,9 @@ class _RestartGameState extends State<RestartGame> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: iceEffects.getSprite('ice_player_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: fireEffects.getSprite('player_fire_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // add images of final levels and allow users to load them.
-                      // unlock
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      Wrap(
-                        runSpacing: 20,
-                        children: [
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(diedOverlayIdentifier);
-                              widget.game.loadNewLevel(levelOne(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(diedOverlayIdentifier);
-                              widget.game.loadNewLevel(levelTwo(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(diedOverlayIdentifier);
-                              widget.game.loadNewLevel(levelThree(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                        ],
+                      OverlayCommon(
+                        game: widget.game,
+                        overlayId: diedOverlayIdentifier,
                       ),
                     ],
                   ),
@@ -1097,82 +1028,9 @@ class _StartMenuState extends State<StartMenu> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: iceEffects.getSprite('ice_player_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: fireEffects.getSprite('player_fire_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // add images of final levels and allow users to load them.
-                      // unlock
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      Wrap(
-                        runSpacing: 20,
-                        children: [
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(startMenu);
-                              widget.game.loadNewLevel(levelOne(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(startMenu);
-                              widget.game.loadNewLevel(levelTwo(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(startMenu);
-                              widget.game.loadNewLevel(levelThree(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                        ],
+                      OverlayCommon(
+                        game: widget.game,
+                        overlayId: startMenu,
                       ),
                     ],
                   ),
@@ -1247,82 +1105,9 @@ class _GameWonState extends State<GameWon> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: iceEffects.getSprite('ice_player_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: fireEffects.getSprite('player_fire_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // add images of final levels and allow users to load them.
-                      // unlock
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      Wrap(
-                        runSpacing: 20,
-                        children: [
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(gameWonOverlayIdentifier);
-                              widget.game.loadNewLevel(levelOne(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(gameWonOverlayIdentifier);
-                              widget.game.loadNewLevel(levelTwo(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(gameWonOverlayIdentifier);
-                              widget.game.loadNewLevel(levelThree(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                        ],
+                      OverlayCommon(
+                        game: widget.game,
+                        overlayId: gameWonOverlayIdentifier,
                       ),
                     ],
                   ),
@@ -1421,82 +1206,9 @@ class _PauseMenuState extends State<PauseMenu> {
                       const SizedBox(
                         height: 20,
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: iceEffects.getSprite('ice_player_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Align(
-                            widthFactor: 0.5,
-                            child: SizedBox(
-                              height: 100,
-                              width: 100,
-                              child: FittedBox(
-                                child: SpriteWidget(
-                                  sprite: fireEffects.getSprite('player_fire_sprite'),
-                                  srcSize: Vector2(100, 100),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // add images of final levels and allow users to load them.
-                      // unlock
-
-                      const SizedBox(
-                        height: 20,
-                      ),
-
-                      Wrap(
-                        runSpacing: 20,
-                        children: [
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(pauseMenuIdentifier);
-                              widget.game.loadNewLevel(levelOne(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(pauseMenuIdentifier);
-                              widget.game.loadNewLevel(levelTwo(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                          LevelPreview(
-                            image: '',
-                            onCall: () {
-                              widget.game.overlays.remove(pauseMenuIdentifier);
-                              widget.game.loadNewLevel(levelThree(widget.game));
-                              widget.game.paused = false;
-                            },
-                          ),
-                          const SizedBox(
-                            width: 20,
-                          ),
-                        ],
+                      OverlayCommon(
+                        game: widget.game,
+                        overlayId: pauseMenuIdentifier,
                       ),
                     ],
                   ),
@@ -1654,4 +1366,97 @@ List<GamePlatform> levelThree(MyGame game) {
       enableEnemy: true,
     ),
   ]);
+}
+
+class OverlayCommon extends StatelessWidget {
+  const OverlayCommon({
+    required this.game,
+    required this.overlayId,
+    super.key,
+  });
+
+  final MyGame game;
+  final String overlayId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              widthFactor: 0.5,
+              child: SizedBox(
+                height: 100,
+                width: 100,
+                child: FittedBox(
+                  child: SpriteWidget(
+                    sprite: iceEffects.getSprite('ice_player_sprite'),
+                    srcSize: Vector2(100, 100),
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              widthFactor: 0.5,
+              child: SizedBox(
+                height: 100,
+                width: 100,
+                child: FittedBox(
+                  child: SpriteWidget(
+                    sprite: fireEffects.getSprite('player_fire_sprite'),
+                    srcSize: Vector2(100, 100),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // add images of final levels and allow users to load them.
+        // unlock
+
+        const SizedBox(
+          height: 20,
+        ),
+
+        Wrap(
+          runSpacing: 20,
+          children: [
+            LevelPreview(
+              image: '',
+              onCall: () {
+                game.overlays.remove(overlayId);
+                game.loadNewLevel(levelOne(game));
+              },
+            ),
+            const SizedBox(
+              width: 20,
+            ),
+            LevelPreview(
+              image: '',
+              onCall: () {
+                game.overlays.remove(overlayId);
+                game.loadNewLevel(levelTwo(game));
+              },
+            ),
+            const SizedBox(
+              width: 20,
+            ),
+            LevelPreview(
+              image: '',
+              onCall: () {
+                game.overlays.remove(overlayId);
+                game.loadNewLevel(levelThree(game));
+              },
+            ),
+            const SizedBox(
+              width: 20,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
