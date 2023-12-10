@@ -14,13 +14,32 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/rendering.dart';
 import 'package:flame/sprite.dart';
+import 'package:flame/widgets.dart';
 import 'package:flame_fire_atlas/flame_fire_atlas.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-void main() {
-  runApp(GameWidget(game: MyGame()));
+late final FireAtlas fireEffects;
+late final FireAtlas iceEffects;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  fireEffects = await FireAtlas.loadAsset('fire_effects.fa');
+  iceEffects = await FireAtlas.loadAsset('water_effects.fa');
+
+  runApp(
+    GameWidget(
+      game: MyGame(),
+      overlayBuilderMap: {
+        pauseOverlayIdentifier: (context, game) {
+          return RestartGame(
+            game: game! as MyGame,
+          );
+        },
+      },
+    ),
+  );
 }
 
 class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKeyboardHandlerComponents {
@@ -31,7 +50,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   // TODO: implement debugMode
   bool get debugMode => false;
 
-  final player = PlayerComponent();
+  PlayerComponent player = PlayerComponent();
   final screenhitbox = ScreenHitbox();
 
   async.Timer timer = async.Timer(Duration.zero, () {});
@@ -69,68 +88,56 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   late SpriteAnimation heartRegularAnimation;
   late SpriteAnimation heartDieAnimation;
 
+  void resetLevel() {
+    // remove platforms
+    children.removeWhere((element) {
+      if (element is GamePlatform || element is Bullet || element is HealthBar || element is PlayerComponent) {
+        element.removeFromParent();
+        return true;
+      }
+
+      return false;
+    });
+  }
+
+  void loadNewLevel(List<GamePlatform> platforms) {
+    resetLevel();
+    player = PlayerComponent();
+    add(player);
+    addAll(platforms);
+    add(HealthBar());
+  }
+
   @override
   Future<void> onLoad() async {
     await loadImages();
 
-    final atlas = await FireAtlas.loadAsset('fire_effects.fa');
-    final waterEffects = await FireAtlas.loadAsset('water_effects.fa');
     final health = await FireAtlas.loadAsset('health.fa');
     final healthDie = await FireAtlas.loadAsset('health_die.fa');
 
     // Some plain sprites
-    fireanimation = atlas.getAnimation('fire_2');
-    enemyAnimation = atlas.getAnimation('enemy');
-    fireEnemyDeathAnimation = atlas.getAnimation('fire_enemy_death_animation');
-    fireBulletAnimation = atlas.getAnimation('fire_bullet_animation');
-    playerFireAnimation = atlas.getAnimation('player_fire_animation');
-    playerFireSparklesAnimation = atlas.getAnimation('player_fire_sparkles_animation');
-    playerFireBulletAnimation = atlas.getAnimation('player_fire_bullet_animation');
-    fireBulletExplosionAnimation = atlas.getAnimation('fire_bullet_explosion_animation');
+    fireanimation = fireEffects.getAnimation('fire_2');
+    enemyAnimation = fireEffects.getAnimation('enemy');
+    fireEnemyDeathAnimation = fireEffects.getAnimation('fire_enemy_death_animation');
+    fireBulletAnimation = fireEffects.getAnimation('fire_bullet_animation');
+    playerFireAnimation = fireEffects.getAnimation('player_fire_animation');
+    playerFireSparklesAnimation = fireEffects.getAnimation('player_fire_sparkles_animation');
+    playerFireBulletAnimation = fireEffects.getAnimation('player_fire_bullet_animation');
+    fireBulletExplosionAnimation = fireEffects.getAnimation('fire_bullet_explosion_animation');
 
-    icePlatformAnimation = waterEffects.getAnimation('ice_platform_animation');
-    iceEnemyAnimation = waterEffects.getAnimation('ice_enemy');
-    iceEnemyDeathAnimation = waterEffects.getAnimation('ice_enemy_death_animation');
-    iceEnemyBulletAnimation = waterEffects.getAnimation('ice_enemy_bullet_animation');
-    playerIceAnimation = waterEffects.getAnimation('player_ice_animation');
-    playerIceSparklesAnimation = waterEffects.getAnimation('player_ice_sparkles_animation');
-    playerIceBulletAnimation = waterEffects.getAnimation('player_ice_bullet_animation');
-    iceBulletExplosionAnimation = waterEffects.getAnimation('ice_bullet_explosion_animation');
+    icePlatformAnimation = iceEffects.getAnimation('ice_platform_animation');
+    iceEnemyAnimation = iceEffects.getAnimation('ice_enemy');
+    iceEnemyDeathAnimation = iceEffects.getAnimation('ice_enemy_death_animation');
+    iceEnemyBulletAnimation = iceEffects.getAnimation('ice_enemy_bullet_animation');
+    playerIceAnimation = iceEffects.getAnimation('player_ice_animation');
+    playerIceSparklesAnimation = iceEffects.getAnimation('player_ice_sparkles_animation');
+    playerIceBulletAnimation = iceEffects.getAnimation('player_ice_bullet_animation');
+    iceBulletExplosionAnimation = iceEffects.getAnimation('ice_bullet_explosion_animation');
 
     heartRegularAnimation = health.getAnimation('health_normal_animation');
     heartDieAnimation = healthDie.getAnimation('die');
 
-    addAll([
-      player,
-      GamePlatform(
-        size: Vector2(size.x, defaultPlatformSize.y),
-        position: Vector2(0, size.y - 25),
-        enableEnemy: false,
-      ),
-      GamePlatform(
-        size: defaultPlatformSize,
-        position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 200),
-        isHot: false,
-        enableEnemy: true,
-      ),
-      GamePlatform(
-        size: defaultPlatformSize,
-        position: Vector2(size.x / 2 - (defaultPlatformSize.x) * 2, size.y - 400),
-        enableEnemy: true,
-      ),
-      GamePlatform(
-        size: defaultPlatformSize,
-        position: Vector2(size.x / 2 + (defaultPlatformSize.x), size.y - 400),
-        enableEnemy: true,
-      ),
-      GamePlatform(
-        size: defaultPlatformSize,
-        position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 600),
-        isHot: false,
-        enableEnemy: true,
-      ),
-      HealthBar(),
-    ]);
+    loadNewLevel(levelOne(this));
     return super.onLoad();
   }
 
@@ -201,7 +208,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
 class HealthBar extends Component with HasGameReference<MyGame>, CollisionCallbacks {
   late final SpriteAnimationComponent heartAnimation;
-  late final SpriteAnimationComponent heartDieAnimation;
+  late final List<SpriteAnimationComponent> hearts;
+
   @override
   FutureOr<void> onLoad() {
     heartAnimation = SpriteAnimationComponent(
@@ -210,15 +218,16 @@ class HealthBar extends Component with HasGameReference<MyGame>, CollisionCallba
 
     final heartPosition = Vector2(50, 50);
 
-    for (var i = 0; i < 3; i++) {
-      add(
-        SpriteAnimationComponent(
-          animation: game.heartRegularAnimation,
-          size: Vector2(40, 40),
-          position: Vector2(30.0 * (1 + i), heartPosition.y),
-        ),
-      );
-    }
+    hearts = List.generate(
+      3,
+      (i) => SpriteAnimationComponent(
+        animation: game.heartRegularAnimation,
+        size: Vector2(40, 40),
+        position: Vector2(30.0 * (1 + i), heartPosition.y),
+      ),
+    );
+
+    addAll(hearts);
 
     return super.onLoad();
   }
@@ -263,6 +272,22 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
   final bool enableEnemy;
 
   late final List<SpriteAnimationComponent> snowFlakes;
+  late final Enemy enemy;
+  late final List<SpriteAnimationComponent> torches;
+  late final List<PlatformBlock> tiles;
+
+  @override
+  void onRemove() {
+    if (!isHot) {
+      game.removeAll(snowFlakes);
+    }
+    if (enableEnemy) {
+      enemy.removeFromParent();
+    }
+    game.removeAll(torches);
+    game.removeAll(tiles);
+    super.onRemove();
+  }
 
   @override
   FutureOr<void> onLoad() {
@@ -273,16 +298,17 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
     add(RectangleHitbox());
 
     if (enableEnemy) {
+      enemy = Enemy(
+        isOnHotPlatform: isHot,
+        platform: this,
+      );
       game.add(
-        Enemy(
-          isOnHotPlatform: isHot,
-          platform: this,
-        ),
+        enemy,
       );
     }
 
     final blocks = (size.x / 25).round();
-    final tiles = List.generate(
+    tiles = List.generate(
       blocks,
       (index) => PlatformBlock(
         gridPosition: position,
@@ -293,6 +319,8 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 
     game.addAll(tiles);
 
+    torches = [];
+
     // lay the platform start/end flame
     final torch1 = SpriteAnimationComponent(
       animation: isHot ? game.fireanimation : game.icePlatformAnimation,
@@ -302,6 +330,11 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
       animation: isHot ? game.fireanimation : game.icePlatformAnimation,
       position: Vector2(position.x + width - 16, position.y - height),
     );
+
+    torches.addAll([
+      torch1,
+      torch2,
+    ]);
 
     game.addAll([
       torch1,
@@ -541,6 +574,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
       if (stopAttacksTimer.isActive) return;
 
       final healthBar = game.children.singleWhere((element) => element is HealthBar);
+      final endGame = healthBar.children.length == 1;
 
       if (healthBar.children.isNotEmpty) {
         final heart = healthBar.children.last as SpriteAnimationComponent;
@@ -555,7 +589,12 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         healthBar.remove(heart);
         healthBar.add(dieOutAnimation);
 
-        stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {});
+        stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
+          if (endGame) {
+            game.overlays.add(pauseOverlayIdentifier);
+            game.paused = true;
+          }
+        });
 
         playerSprite.add(
           FlashEffect(
@@ -757,3 +796,174 @@ enum RunningState { waiting, runningLeft, runningRight }
 final defaultPlatformSize = Vector2(200, 30);
 
 const degree = pi / 180;
+
+// Inside your game:
+const pauseOverlayIdentifier = 'PauseMenu';
+
+class RestartGame extends StatelessWidget {
+  const RestartGame({
+    required this.game,
+    super.key,
+  });
+
+  final MyGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                //grey scale
+
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                blendMode: BlendMode.saturation,
+                child: Container(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 300,
+                decoration: BoxDecoration(
+                  color: Colors.brown,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 5,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          game.overlays.remove(pauseOverlayIdentifier);
+                          game.loadNewLevel(levelTwo(game));
+                          game.paused = false;
+                        },
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Image.asset(
+                              'assets/restart_icon.png',
+                              height: 64,
+                              width: 64,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 50,
+                              width: 50,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: iceEffects.getSprite('ice_player_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 50,
+                              width: 50,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: fireEffects.getSprite('player_fire_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // add images of final levels and allow users to load them.
+                      // unlock
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+List<GamePlatform> levelOne(MyGame game) {
+  final size = game.size;
+  return List.from([
+    GamePlatform(
+      size: Vector2(size.x, defaultPlatformSize.y),
+      position: Vector2(0, size.y - 25),
+      enableEnemy: false,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 - defaultPlatformSize.x, size.y - 350),
+      enableEnemy: true,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 + (defaultPlatformSize.x) / 2, size.y - 150),
+      enableEnemy: true,
+      isHot: false,
+    ),
+  ]);
+}
+
+List<GamePlatform> levelTwo(MyGame game) {
+  final size = game.size;
+  return List.from([
+    GamePlatform(
+      size: Vector2(size.x, defaultPlatformSize.y),
+      position: Vector2(0, size.y - 25),
+      enableEnemy: false,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 200),
+      isHot: false,
+      enableEnemy: true,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 - (defaultPlatformSize.x) * 2, size.y - 400),
+      enableEnemy: true,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 + (defaultPlatformSize.x), size.y - 400),
+      enableEnemy: true,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 600),
+      isHot: false,
+      enableEnemy: true,
+    ),
+  ]);
+}
