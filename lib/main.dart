@@ -33,7 +33,7 @@ void main() async {
     GameWidget(
       game: MyGame(),
       overlayBuilderMap: {
-        pauseOverlayIdentifier: (context, game) {
+        diedOverlayIdentifier: (context, game) {
           return RestartGame(
             game: game! as MyGame,
           );
@@ -45,6 +45,11 @@ void main() async {
         },
         gameWonOverlayIdentifier: (context, game) {
           return GameWon(
+            game: game! as MyGame,
+          );
+        },
+        pauseMenuIdentifier: (context, game) {
+          return PauseMenu(
             game: game! as MyGame,
           );
         },
@@ -166,6 +171,15 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     Set<LogicalKeyboardKey> keysPressed,
   ) {
     if (!startGame) {
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      overlays.add(pauseMenuIdentifier);
+
+      player.runningState = RunningState.waiting;
+      player.current = PlayerState.waiting;
+
       return KeyEventResult.handled;
     }
 
@@ -450,15 +464,18 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   @override
   void update(double dt) {
     super.update(dt);
-    final radius = dt * 300;
 
     final angle = fireAngle;
+    this.angle = angle - pi / 2;
 
-    // if (angle != null) {
+    if (!game.startGame) {
+      return;
+    }
+
+    final radius = dt * 300;
+
     x += radius * cos(angle);
     y += radius * sin(angle);
-
-    this.angle = angle - pi / 2;
 
     if (x < 0 || x > game.size.x || y < 0 || y > game.size.y) {
       removeFromParent();
@@ -623,7 +640,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
 
         stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
           if (endGame) {
-            game.overlays.add(pauseOverlayIdentifier);
+            game.overlays.add(diedOverlayIdentifier);
             game.paused = true;
           }
         });
@@ -851,7 +868,7 @@ final defaultPlatformSize = Vector2(200, 30);
 const degree = pi / 180;
 
 // Inside your game:
-const pauseOverlayIdentifier = 'PauseMenu';
+const diedOverlayIdentifier = 'PauseMenu';
 
 // Inside your game:
 const startMenu = 'StartMenu';
@@ -960,7 +977,7 @@ class _RestartGameState extends State<RestartGame> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(pauseOverlayIdentifier);
+                              widget.game.overlays.remove(diedOverlayIdentifier);
                               widget.game.loadNewLevel(levelOne(widget.game));
                               widget.game.paused = false;
                             },
@@ -971,7 +988,7 @@ class _RestartGameState extends State<RestartGame> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(pauseOverlayIdentifier);
+                              widget.game.overlays.remove(diedOverlayIdentifier);
                               widget.game.loadNewLevel(levelTwo(widget.game));
                               widget.game.paused = false;
                             },
@@ -982,7 +999,7 @@ class _RestartGameState extends State<RestartGame> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(pauseOverlayIdentifier);
+                              widget.game.overlays.remove(diedOverlayIdentifier);
                               widget.game.loadNewLevel(levelThree(widget.game));
                               widget.game.paused = false;
                             },
@@ -1298,6 +1315,180 @@ class _GameWonState extends State<GameWon> {
                             image: '',
                             onCall: () {
                               widget.game.overlays.remove(gameWonOverlayIdentifier);
+                              widget.game.loadNewLevel(levelThree(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const pauseMenuIdentifier = 'pauseMenuoverlayidentifier';
+
+class PauseMenu extends StatefulWidget {
+  const PauseMenu({
+    required this.game,
+    super.key,
+  });
+
+  final MyGame game;
+
+  @override
+  State<PauseMenu> createState() => _PauseMenuState();
+}
+
+class _PauseMenuState extends State<PauseMenu> {
+  @override
+  void initState() {
+    super.initState();
+    widget.game.startGame = false;
+  }
+
+  @override
+  void dispose() {
+    widget.game.startGame = true;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                //grey scale
+
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                blendMode: BlendMode.saturation,
+                child: Container(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 500,
+                decoration: BoxDecoration(
+                  color: Colors.brown,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 5,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          widget.game.overlays.remove(pauseMenuIdentifier);
+                        },
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              width: 2,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Image.asset(
+                              'assets/start_icon.png',
+                              height: 64,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: iceEffects.getSprite('ice_player_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: fireEffects.getSprite('player_fire_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // add images of final levels and allow users to load them.
+                      // unlock
+
+                      const SizedBox(
+                        height: 20,
+                      ),
+
+                      Wrap(
+                        runSpacing: 20,
+                        children: [
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(pauseMenuIdentifier);
+                              widget.game.loadNewLevel(levelOne(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(pauseMenuIdentifier);
+                              widget.game.loadNewLevel(levelTwo(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(pauseMenuIdentifier);
                               widget.game.loadNewLevel(levelThree(widget.game));
                               widget.game.paused = false;
                             },
