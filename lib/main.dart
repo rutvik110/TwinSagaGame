@@ -12,6 +12,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/rendering.dart';
+import 'package:flame/sprite.dart';
 import 'package:flame_fire_atlas/flame_fire_atlas.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -50,8 +51,16 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
   late SpriteAnimation playerFireAnimation;
   late SpriteAnimation playerFireSparklesAnimation;
+  late SpriteAnimation playerFireBulletAnimation;
+
+  late SpriteAnimation playerIceAnimation;
+  late SpriteAnimation playerIceSparklesAnimation;
+  late SpriteAnimation playerIceBulletAnimation;
 
   late SpriteAnimation icePlatformAnimation;
+  late SpriteAnimation iceEnemyAnimation;
+  late SpriteAnimation iceEnemyDeathAnimation;
+  late SpriteAnimation iceEnemyBulletAnimation;
 
   @override
   Future<void> onLoad() async {
@@ -67,8 +76,15 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     fireBulletAnimation = atlas.getAnimation('fire_bullet_animation');
     playerFireAnimation = atlas.getAnimation('player_fire_animation');
     playerFireSparklesAnimation = atlas.getAnimation('player_fire_sparkles_animation');
+    playerFireBulletAnimation = atlas.getAnimation('player_fire_bullet_animation');
 
     icePlatformAnimation = waterEffects.getAnimation('ice_platform_animation');
+    iceEnemyAnimation = waterEffects.getAnimation('ice_enemy');
+    iceEnemyDeathAnimation = waterEffects.getAnimation('ice_enemy_death_animation');
+    iceEnemyBulletAnimation = waterEffects.getAnimation('ice_enemy_bullet_animation');
+    playerIceAnimation = waterEffects.getAnimation('player_ice_animation');
+    playerIceSparklesAnimation = waterEffects.getAnimation('player_ice_sparkles_animation');
+    playerIceBulletAnimation = waterEffects.getAnimation('player_ice_bullet_animation');
 
     addAll([
       player,
@@ -155,6 +171,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
               direction: player.direction,
               isHot: player.isOnHotPlatform,
               fireAngle: player.direction.angleInRadians,
+              bulletAnimation: player.isOnHotPlatform ? playerFireBulletAnimation : playerIceBulletAnimation,
             ),
           );
           timer = async.Timer(const Duration(milliseconds: 300), () {});
@@ -292,6 +309,7 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
     required this.direction,
     required this.isHot,
     required this.fireAngle,
+    required this.bulletAnimation,
     Vector2? position,
   }) : super(
           position: position ?? Vector2(0, 0),
@@ -301,6 +319,7 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   final Direction direction;
   final double fireAngle;
   late final SpriteAnimationComponent bullet;
+  final SpriteAnimation bulletAnimation;
 
   @override
   Future<void> onLoad() {
@@ -311,7 +330,7 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
 
     bullet = SpriteAnimationComponent(
       // TODO: Update for ICE
-      animation: isHot ? game.fireBulletAnimation : game.fireBulletAnimation,
+      animation: bulletAnimation,
       size: size,
     );
 
@@ -364,6 +383,7 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
   bool isOnHotPlatform = true;
 
   late SpriteAnimationComponent playerSprite;
+  late SpriteAnimationComponent playerFireSparklesAnimation;
 
   @override
   Future<void> onLoad() {
@@ -376,12 +396,12 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     add(CircleHitbox());
 
     playerSprite = SpriteAnimationComponent(
-      animation: game.playerFireAnimation,
+      animation: isOnHotPlatform ? game.playerFireAnimation : game.playerIceAnimation,
       size: size,
     );
 
-    final playerFireSparklesAnimation = SpriteAnimationComponent(
-      animation: game.playerFireSparklesAnimation,
+    playerFireSparklesAnimation = SpriteAnimationComponent(
+      animation: isOnHotPlatform ? game.playerFireSparklesAnimation : game.playerIceSparklesAnimation,
       size: size,
       position: Vector2(position.x, position.y - size.y),
     );
@@ -445,6 +465,10 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     if (other is GamePlatform) {
       isOnHotPlatform = other.isHot;
 
+      playerFireSparklesAnimation.animation =
+          isOnHotPlatform ? game.playerFireSparklesAnimation : game.playerIceSparklesAnimation;
+      playerSprite.animation = isOnHotPlatform ? game.playerFireAnimation : game.playerIceAnimation;
+
       if ((position.y + height) <= (other.y + other.height)) {
         groundYPos = other.y - height;
       }
@@ -504,6 +528,7 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
           isHot: isOnHotPlatform,
           position: position,
           fireAngle: angle,
+          bulletAnimation: isOnHotPlatform ? game.fireBulletAnimation : game.iceEnemyBulletAnimation,
         );
 
         game.add(bullet);
@@ -516,7 +541,7 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
 
     final enemy = SpriteAnimationComponent(
       // TODO: Update for ICE
-      animation: isOnHotPlatform ? game.enemyAnimation : game.enemyAnimation,
+      animation: isOnHotPlatform ? game.enemyAnimation : game.iceEnemyAnimation,
       size: size,
     );
 
@@ -540,7 +565,7 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
         game.add(
           SpriteAnimationComponent(
             // TODO: Update for ICE
-            animation: isOnHotPlatform ? game.fireEnemyDeathAnimation : game.fireEnemyDeathAnimation,
+            animation: isOnHotPlatform ? game.fireEnemyDeathAnimation : game.iceEnemyDeathAnimation,
             position: position,
             size: size,
             removeOnFinish: true,
