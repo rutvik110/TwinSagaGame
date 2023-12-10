@@ -15,6 +15,7 @@ import 'package:flame/game.dart';
 import 'package:flame/rendering.dart';
 import 'package:flame/sprite.dart';
 import 'package:flame/widgets.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flame_fire_atlas/flame_fire_atlas.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -169,7 +170,10 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     }
 
     if (keysPressed.contains(LogicalKeyboardKey.space) || event.isKeyPressed(LogicalKeyboardKey.space)) {
-      print('Jump');
+      FlameAudio.play(
+        'player_jump.wav',
+        volume: 2,
+      );
       player.jump();
     }
 
@@ -209,6 +213,9 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
         event.logicalKey == LogicalKeyboardKey.shiftRight) {
       if (event is RawKeyDownEvent) {
         if (!timer.isActive) {
+          FlameAudio.play(
+            player.isOnHotPlatform ? 'player_fire_bullet.wav' : 'player_ice_bullet.wav',
+          );
           add(
             Bullet(
               position: player.center - Vector2(12.5, 12.5) * player.direction.directionVector,
@@ -219,6 +226,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
               isPlayerBullet: true,
             ),
           );
+
           timer = async.Timer(const Duration(milliseconds: 300), () {});
         }
       }
@@ -611,6 +619,8 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         healthBar.remove(heart);
         healthBar.add(dieOutAnimation);
 
+        FlameAudio.play('player_final_death.wav');
+
         stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
           if (endGame) {
             game.overlays.add(pauseOverlayIdentifier);
@@ -718,6 +728,10 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
           return;
         }
 
+        FlameAudio.play(
+          isOnHotPlatform ? 'fire_enemy_bullet.wav' : 'ice_enemy_bullet.wav',
+        );
+
         final playerCenter = game.player.center;
         final bulletdirection = playerCenter - center;
 
@@ -768,6 +782,10 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
       final gameWon = enemies.length == 1;
 
       if (other.isHot != isOnHotPlatform && other.isPlayerBullet) {
+        FlameAudio.play(
+          isOnHotPlatform ? 'fire_enemy_death.wav' : 'ice_enemy_death.wav',
+          volume: isOnHotPlatform ? 2 : 1,
+        );
         removeFromParent();
 
         game.add(
