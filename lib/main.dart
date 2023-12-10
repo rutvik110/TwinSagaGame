@@ -540,23 +540,22 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
     if (other is Bullet && !other.isPlayerBullet) {
       if (stopAttacksTimer.isActive) return;
 
-      // final healthBar = game.children.singleWhere((element) => element is HealthBar);
+      final healthBar = game.children.singleWhere((element) => element is HealthBar);
 
-      if (true) {
-        // // end game
-        // final heart = healthBar.children.last as SpriteAnimationComponent;
+      if (healthBar.children.isNotEmpty) {
+        final heart = healthBar.children.last as SpriteAnimationComponent;
 
-        // final dieOutAnimation = SpriteAnimationComponent(
-        //   animation: game.heartDieAnimation,
-        //   size: heart.size,
-        //   position: heart.position,
-        //   removeOnFinish: true,
-        // );
+        final dieOutAnimation = SpriteAnimationComponent(
+          animation: game.heartDieAnimation,
+          size: heart.size,
+          position: heart.position,
+          removeOnFinish: true,
+        );
 
-        // healthBar.remove(heart);
-        // healthBar.add(dieOutAnimation);
+        healthBar.remove(heart);
+        healthBar.add(dieOutAnimation);
 
-        stopAttacksTimer = async.Timer(const Duration(milliseconds: 1100), () {});
+        stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {});
 
         playerSprite.add(
           FlashEffect(
