@@ -37,6 +37,11 @@ void main() async {
             game: game! as MyGame,
           );
         },
+        startMenu: (context, game) {
+          return StartMenu(
+            game: game! as MyGame,
+          );
+        },
       },
     ),
   );
@@ -54,6 +59,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   final screenhitbox = ScreenHitbox();
 
   async.Timer timer = async.Timer(Duration.zero, () {});
+
+  bool startGame = true;
 
   Future<void> loadImages() async {
     images = Images(prefix: '');
@@ -136,8 +143,9 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
     heartRegularAnimation = health.getAnimation('health_normal_animation');
     heartDieAnimation = healthDie.getAnimation('die');
-
     loadNewLevel(levelOne(this));
+    overlays.add(startMenu);
+
     return super.onLoad();
   }
 
@@ -146,6 +154,10 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     RawKeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
+    if (!startGame) {
+      return KeyEventResult.handled;
+    }
+
     if (keysPressed.contains(LogicalKeyboardKey.space) || event.isKeyPressed(LogicalKeyboardKey.space)) {
       print('Jump');
       player.jump();
@@ -590,10 +602,10 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         healthBar.add(dieOutAnimation);
 
         stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
-          // if (endGame) {
-          //   game.overlays.add(pauseOverlayIdentifier);
-          //   game.paused = true;
-          // }
+          if (endGame) {
+            game.overlays.add(pauseOverlayIdentifier);
+            game.paused = true;
+          }
         });
 
         playerSprite.add(
@@ -692,6 +704,10 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
       1.0 + 1.1 * Random().nextDouble(),
       repeat: true,
       onTick: () {
+        if (!game.startGame) {
+          return;
+        }
+
         final playerCenter = game.player.center;
         final bulletdirection = playerCenter - center;
 
@@ -800,13 +816,33 @@ const degree = pi / 180;
 // Inside your game:
 const pauseOverlayIdentifier = 'PauseMenu';
 
-class RestartGame extends StatelessWidget {
+// Inside your game:
+const startMenu = 'StartMenu';
+
+class RestartGame extends StatefulWidget {
   const RestartGame({
     required this.game,
     super.key,
   });
 
   final MyGame game;
+
+  @override
+  State<RestartGame> createState() => _RestartGameState();
+}
+
+class _RestartGameState extends State<RestartGame> {
+  @override
+  void initState() {
+    super.initState();
+    widget.game.startGame = false;
+  }
+
+  @override
+  void dispose() {
+    widget.game.startGame = true;
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -828,7 +864,7 @@ class RestartGame extends StatelessWidget {
             ),
             Center(
               child: Container(
-                width: 300,
+                width: 500,
                 decoration: BoxDecoration(
                   color: Colors.brown,
                   borderRadius: BorderRadius.circular(20),
@@ -845,9 +881,9 @@ class RestartGame extends StatelessWidget {
                       InkWell(
                         customBorder: const CircleBorder(),
                         onTap: () {
-                          game.overlays.remove(pauseOverlayIdentifier);
-                          game.loadNewLevel(levelTwo(game));
-                          game.paused = false;
+                          widget.game.overlays.remove(pauseOverlayIdentifier);
+                          widget.game.loadNewLevel(levelTwo(widget.game));
+                          widget.game.paused = false;
                         },
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -873,8 +909,8 @@ class RestartGame extends StatelessWidget {
                           Align(
                             widthFactor: 0.5,
                             child: SizedBox(
-                              height: 50,
-                              width: 50,
+                              height: 100,
+                              width: 100,
                               child: FittedBox(
                                 child: SpriteWidget(
                                   sprite: iceEffects.getSprite('ice_player_sprite'),
@@ -886,8 +922,8 @@ class RestartGame extends StatelessWidget {
                           Align(
                             widthFactor: 0.5,
                             child: SizedBox(
-                              height: 50,
-                              width: 50,
+                              height: 100,
+                              width: 100,
                               child: FittedBox(
                                 child: SpriteWidget(
                                   sprite: fireEffects.getSprite('player_fire_sprite'),
@@ -901,12 +937,266 @@ class RestartGame extends StatelessWidget {
 
                       // add images of final levels and allow users to load them.
                       // unlock
+
+                      const SizedBox(
+                        height: 20,
+                      ),
+
+                      Wrap(
+                        runSpacing: 20,
+                        children: [
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(pauseOverlayIdentifier);
+                              widget.game.loadNewLevel(levelOne(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(pauseOverlayIdentifier);
+                              widget.game.loadNewLevel(levelTwo(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(pauseOverlayIdentifier);
+                              widget.game.loadNewLevel(levelThree(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class StartMenu extends StatefulWidget {
+  const StartMenu({
+    required this.game,
+    super.key,
+  });
+
+  final MyGame game;
+
+  @override
+  State<StartMenu> createState() => _StartMenuState();
+}
+
+class _StartMenuState extends State<StartMenu> {
+  @override
+  void initState() {
+    super.initState();
+    widget.game.startGame = false;
+  }
+
+  @override
+  void dispose() {
+    widget.game.startGame = true;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                //grey scale
+
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                blendMode: BlendMode.saturation,
+                child: Container(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 500,
+                decoration: BoxDecoration(
+                  color: Colors.brown,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 5,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: iceEffects.getSprite('ice_player_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: fireEffects.getSprite('player_fire_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // add images of final levels and allow users to load them.
+                      // unlock
+
+                      const SizedBox(
+                        height: 20,
+                      ),
+
+                      Wrap(
+                        runSpacing: 20,
+                        children: [
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.loadNewLevel(levelOne(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.loadNewLevel(levelTwo(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.loadNewLevel(levelThree(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LevelPreview extends StatelessWidget {
+  const LevelPreview({
+    required this.image,
+    required this.onCall,
+    super.key,
+  });
+
+  final String image;
+  final VoidCallback onCall;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onCall,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.red,
+          border: Border.all(
+            width: 5,
+          ),
+        ),
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            width: 5,
+          ),
+        ),
+        child: SizedBox(
+          width: 200,
+          height: 100,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const SizedBox(
+                width: 200,
+                height: 100,
+              ),
+              Positioned.fill(
+                child: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: 15,
+                      sigmaY: 15,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/start_icon.png',
+                        height: 64,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
