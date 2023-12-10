@@ -127,7 +127,20 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
   late int levelId;
 
-  void loadNewLevel(int levelId, List<GamePlatform> platforms) {
+  void playBgMusic() {
+    if (!isAudioPlaying) {
+      FlameAudio.loop(
+        'bg_music.wav',
+        volume: 0.4,
+      );
+      isAudioPlaying = true;
+    }
+  }
+
+  void loadNewLevel(
+    int levelId,
+    List<GamePlatform> platforms,
+  ) {
     this.levelId = levelId;
     resetLevel();
     player = PlayerComponent();
@@ -140,10 +153,12 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   @override
   void onGameResize(Vector2 size) {
     if (isLoaded) {
-      resizeTimer.cancel();
-      resizeTimer = async.Timer(const Duration(milliseconds: 100), () {
-        loadNewLevel(1, levelOne(this));
-      });
+      if (startGame) {
+        resizeTimer.cancel();
+        resizeTimer = async.Timer(const Duration(milliseconds: 100), () {
+          loadNewLevel(levelId, levelOne(this));
+        });
+      }
     }
     super.onGameResize(size);
   }
@@ -151,13 +166,11 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   @override
   bool isLoaded = false;
 
+  bool isAudioPlaying = false;
+
   @override
   Future<void> onLoad() async {
     isLoaded = true;
-    FlameAudio.loop(
-      'bg_music.wav',
-      volume: 0.4,
-    );
 
     await loadImages();
 
@@ -1545,6 +1558,7 @@ class _OverlayCommonState extends State<OverlayCommon> {
                 id: 1,
                 onCall: () {
                   widget.game.overlays.remove(widget.overlayId);
+                  widget.game.playBgMusic();
                   widget.game.loadNewLevel(1, levelOne(widget.game));
                 },
               ),
@@ -1562,6 +1576,7 @@ class _OverlayCommonState extends State<OverlayCommon> {
                       id: 2,
                       onCall: () {
                         widget.game.overlays.remove(widget.overlayId);
+                        widget.game.playBgMusic();
                         widget.game.loadNewLevel(2, levelTwo(widget.game));
                       },
                     ),
@@ -1593,6 +1608,7 @@ class _OverlayCommonState extends State<OverlayCommon> {
                       id: 3,
                       onCall: () {
                         widget.game.overlays.remove(widget.overlayId);
+                        widget.game.playBgMusic();
                         widget.game.loadNewLevel(3, levelThree(widget.game));
                       },
                     ),
