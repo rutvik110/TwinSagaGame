@@ -783,7 +783,7 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
 
       if (other.isHot != isOnHotPlatform && other.isPlayerBullet) {
         FlameAudio.play(
-          isOnHotPlatform ? 'fire_enemy_death.wav' : 'ice_enemy_death.wav',
+          isOnHotPlatform ? 'fire_enemy_death.wav' : 'ice_enemy_death_2.wav',
           volume: isOnHotPlatform ? 2 : 1,
         );
         removeFromParent();
