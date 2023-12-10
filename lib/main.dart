@@ -160,8 +160,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     heartDieAnimation = healthDie.getAnimation('die');
 
     loadNewLevel(levelOne(this));
-    overlays.add(diedOverlayIdentifier);
-    // overlays.add(startMenu);
+    overlays.add(filterOverlay);
+    overlays.add(startMenu);
 
     return super.onLoad();
   }
@@ -1149,6 +1149,18 @@ class _GameWonState extends State<GameWon> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      SizedBox(
+                        height: 200,
+                        width: 200,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/won.gif',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
                       OverlayCommon(
                         game: widget.game,
                         overlayId: gameWonOverlayIdentifier,
@@ -1412,7 +1424,7 @@ List<GamePlatform> levelThree(MyGame game) {
   ]);
 }
 
-class OverlayCommon extends StatelessWidget {
+class OverlayCommon extends StatefulWidget {
   const OverlayCommon({
     required this.game,
     required this.overlayId,
@@ -1421,6 +1433,26 @@ class OverlayCommon extends StatelessWidget {
 
   final MyGame game;
   final String overlayId;
+
+  @override
+  State<OverlayCommon> createState() => _OverlayCommonState();
+}
+
+class _OverlayCommonState extends State<OverlayCommon> {
+  late SpriteAnimation spriteAnimation;
+  late SpriteAnimationTicker ticker;
+  late SpriteAnimation icespriteAnimation;
+  late SpriteAnimationTicker iceticker;
+
+  @override
+  void initState() {
+    super.initState();
+
+    spriteAnimation = widget.game.playerFireAnimation;
+    ticker = SpriteAnimationTicker(spriteAnimation);
+    icespriteAnimation = widget.game.playerIceAnimation;
+    iceticker = SpriteAnimationTicker(icespriteAnimation);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1434,11 +1466,9 @@ class OverlayCommon extends StatelessWidget {
               child: SizedBox(
                 height: 100,
                 width: 100,
-                child: FittedBox(
-                  child: SpriteWidget(
-                    sprite: iceEffects.getSprite('ice_player_sprite'),
-                    srcSize: Vector2(100, 100),
-                  ),
+                child: SpriteAnimationWidget(
+                  animation: icespriteAnimation,
+                  animationTicker: iceticker,
                 ),
               ),
             ),
@@ -1447,32 +1477,25 @@ class OverlayCommon extends StatelessWidget {
               child: SizedBox(
                 height: 100,
                 width: 100,
-                child: FittedBox(
-                  child: SpriteWidget(
-                    sprite: fireEffects.getSprite('player_fire_sprite'),
-                    srcSize: Vector2(100, 100),
-                  ),
+                child: SpriteAnimationWidget(
+                  animation: spriteAnimation,
+                  animationTicker: ticker,
                 ),
               ),
             ),
           ],
         ),
-
-        // add images of final levels and allow users to load them.
-        // unlock
-
         const SizedBox(
           height: 20,
         ),
-
         Wrap(
           runSpacing: 20,
           children: [
             LevelPreview(
               image: '',
               onCall: () {
-                game.overlays.remove(overlayId);
-                game.loadNewLevel(levelOne(game));
+                widget.game.overlays.remove(widget.overlayId);
+                widget.game.loadNewLevel(levelOne(widget.game));
               },
             ),
             const SizedBox(
@@ -1481,8 +1504,8 @@ class OverlayCommon extends StatelessWidget {
             LevelPreview(
               image: '',
               onCall: () {
-                game.overlays.remove(overlayId);
-                game.loadNewLevel(levelTwo(game));
+                widget.game.overlays.remove(widget.overlayId);
+                widget.game.loadNewLevel(levelTwo(widget.game));
               },
             ),
             const SizedBox(
@@ -1491,8 +1514,8 @@ class OverlayCommon extends StatelessWidget {
             LevelPreview(
               image: '',
               onCall: () {
-                game.overlays.remove(overlayId);
-                game.loadNewLevel(levelThree(game));
+                widget.game.overlays.remove(widget.overlayId);
+                widget.game.loadNewLevel(levelThree(widget.game));
               },
             ),
             const SizedBox(
