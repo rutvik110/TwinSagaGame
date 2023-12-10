@@ -9,6 +9,7 @@ import 'dart:ui';
 import 'package:flame/cache.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/rendering.dart';
@@ -65,12 +66,17 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   late SpriteAnimation fireBulletExplosionAnimation;
   late SpriteAnimation iceBulletExplosionAnimation;
 
+  late SpriteAnimation heartRegularAnimation;
+  late SpriteAnimation heartDieAnimation;
+
   @override
   Future<void> onLoad() async {
     await loadImages();
 
     final atlas = await FireAtlas.loadAsset('fire_effects.fa');
     final waterEffects = await FireAtlas.loadAsset('water_effects.fa');
+    final health = await FireAtlas.loadAsset('health.fa');
+    final healthDie = await FireAtlas.loadAsset('health_die.fa');
 
     // Some plain sprites
     fireanimation = atlas.getAnimation('fire_2');
@@ -90,6 +96,9 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     playerIceSparklesAnimation = waterEffects.getAnimation('player_ice_sparkles_animation');
     playerIceBulletAnimation = waterEffects.getAnimation('player_ice_bullet_animation');
     iceBulletExplosionAnimation = waterEffects.getAnimation('ice_bullet_explosion_animation');
+
+    heartRegularAnimation = health.getAnimation('health_normal_animation');
+    heartDieAnimation = healthDie.getAnimation('die');
 
     addAll([
       player,
@@ -120,6 +129,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
         isHot: false,
         enableEnemy: true,
       ),
+      HealthBar(),
     ]);
     return super.onLoad();
   }
@@ -186,6 +196,31 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     }
 
     return KeyEventResult.handled;
+  }
+}
+
+class HealthBar extends Component with HasGameReference<MyGame>, CollisionCallbacks {
+  late final SpriteAnimationComponent heartAnimation;
+  late final SpriteAnimationComponent heartDieAnimation;
+  @override
+  FutureOr<void> onLoad() {
+    heartAnimation = SpriteAnimationComponent(
+      animation: game.heartRegularAnimation,
+    );
+
+    final heartPosition = Vector2(50, 50);
+
+    for (var i = 0; i < 3; i++) {
+      add(
+        SpriteAnimationComponent(
+          animation: game.heartRegularAnimation,
+          size: Vector2(40, 40),
+          position: Vector2(30.0 * (1 + i), heartPosition.y),
+        ),
+      );
+    }
+
+    return super.onLoad();
   }
 }
 
@@ -411,6 +446,8 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
   late SpriteAnimationComponent playerSprite;
   late SpriteAnimationComponent playerFireSparklesAnimation;
 
+  async.Timer stopAttacksTimer = async.Timer(const Duration(), () {});
+
   @override
   Future<void> onLoad() {
     size = Vector2(50, 50);
@@ -499,6 +536,34 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         groundYPos = other.y - height;
       }
     }
+
+    if (other is Bullet && !other.isPlayerBullet) {
+      if (stopAttacksTimer.isActive) return;
+
+      final healthBar = game.children.singleWhere((element) => element is HealthBar);
+
+      if (healthBar.children.isNotEmpty) {
+        // end game
+        final heart = healthBar.children.last as SpriteAnimationComponent;
+
+        final dieOutAnimation = SpriteAnimationComponent(
+          animation: game.heartDieAnimation,
+          size: heart.size,
+          position: heart.position,
+          removeOnFinish: true,
+        );
+
+        heart.removeFromParent();
+        healthBar.add(dieOutAnimation);
+
+        stopAttacksTimer = async.Timer(const Duration(milliseconds: 1100), () {});
+
+        if (healthBar.children.isEmpty) {
+          //end game
+        }
+      }
+    }
+
     super.onCollisionStart(intersectionPoints, other);
   }
 
