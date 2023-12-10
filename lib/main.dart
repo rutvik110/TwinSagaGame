@@ -5,6 +5,7 @@ import 'dart:async' as async;
 import 'dart:developer';
 import 'dart:math';
 import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flame/cache.dart';
 import 'package:flame/collisions.dart';
@@ -159,8 +160,8 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     heartDieAnimation = healthDie.getAnimation('die');
 
     loadNewLevel(levelOne(this));
-    overlays.add(filterOverlay);
-    overlays.add(startMenu);
+    overlays.add(diedOverlayIdentifier);
+    // overlays.add(startMenu);
 
     return super.onLoad();
   }
@@ -890,10 +891,41 @@ class RestartGame extends StatefulWidget {
 }
 
 class _RestartGameState extends State<RestartGame> {
+  late SpriteAnimation spriteAnimation;
+  late SpriteAnimationTicker ticker;
+
+  Future<void> prepareAnimation() async {
+    final skull1 = await rootBundle.load('assets/skull_3.png');
+    final image1 = await decodeImageFromList(skull1.buffer.asUint8List());
+    final skull2 = await rootBundle.load('assets/skull_1.png');
+    final image2 = await decodeImageFromList(skull2.buffer.asUint8List());
+    final skull3 = await rootBundle.load('assets/skull_2.png');
+    final image3 = await decodeImageFromList(skull3.buffer.asUint8List());
+    final skull4 = await rootBundle.load('assets/skull_4.png');
+    final image4 = await decodeImageFromList(skull4.buffer.asUint8List());
+    spriteAnimation = SpriteAnimation.spriteList(
+      [
+        Sprite(image1),
+        Sprite(image2),
+        Sprite(image3),
+        Sprite(image4),
+      ],
+      stepTime: 0.2,
+    );
+    ticker = SpriteAnimationTicker(spriteAnimation);
+    setState(() {
+      loaded = true;
+    });
+  }
+
+  bool loaded = false;
   @override
   void initState() {
     super.initState();
     widget.game.startGame = false;
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      prepareAnimation();
+    });
   }
 
   @override
@@ -936,6 +968,18 @@ class _RestartGameState extends State<RestartGame> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      if (loaded)
+                        SizedBox(
+                          height: 100,
+                          width: 100,
+                          child: SpriteAnimationWidget(
+                            animation: spriteAnimation,
+                            animationTicker: ticker,
+                          ),
+                        ),
+                      const SizedBox(
+                        height: 20,
+                      ),
                       OverlayCommon(
                         game: widget.game,
                         overlayId: diedOverlayIdentifier,
