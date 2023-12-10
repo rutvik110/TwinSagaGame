@@ -35,6 +35,26 @@ void main() async {
 
   runApp(
     GameWidget(
+      // backgroundBuilder: (context) {
+      //   return Positioned.fill(
+      //     child: ShaderMask(
+      //       shaderCallback: (rect) {
+      //         return const LinearGradient(
+      //           colors: [
+      //             Colors.black,
+      //             Colors.black45,
+      //           ],
+      //         ).createShader(
+      //           rect,
+      //         );
+      //       },
+      //       child: Image.asset(
+      //         'assets/game_bg.png',
+      //         fit: BoxFit.cover,
+      //       ),
+      //     ),
+      //   );
+      // },
       game: MyGame(),
       overlayBuilderMap: {
         diedOverlayIdentifier: (context, game) {
@@ -138,6 +158,14 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
   @override
   Future<void> onLoad() async {
+    FlameAudio.loop(
+      'bg_music.wav',
+      volume: 0.5,
+    );
+    FlameAudio.play(
+      'bg_music.wav',
+      volume: 0.5,
+    );
     await loadImages();
 
     final health = await FireAtlas.loadAsset('health.fa');
