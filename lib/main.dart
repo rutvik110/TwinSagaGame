@@ -67,7 +67,7 @@ void main() async {
 
 class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKeyboardHandlerComponents {
   @override
-  Color backgroundColor() => const Color.fromARGB(0, 0, 0, 0);
+  Color backgroundColor() => Colors.black;
 
   @override
   // TODO: implement debugMode
@@ -187,7 +187,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     heartDieAnimation = healthDie.getAnimation('die');
 
     loadNewLevel(1, levelOne(this));
-    overlays.add(filterOverlay);
+    // overlays.add(filterOverlay);
     overlays.add(startMenu);
 
     return super.onLoad();
@@ -214,7 +214,6 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     if (keysPressed.contains(LogicalKeyboardKey.space) || event.isKeyPressed(LogicalKeyboardKey.space)) {
       FlameAudio.play(
         'player_jump.wav',
-        volume: 2,
       );
       player.jump();
     }
@@ -1035,8 +1034,8 @@ class FilterOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-        blendMode: BlendMode.saturation,
+        filter: ImageFilter.blur(),
+        blendMode: BlendMode.darken,
         child: Container(),
       ),
     );
