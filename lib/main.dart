@@ -25,6 +25,9 @@ import 'package:flutter/services.dart';
 late final FireAtlas fireEffects;
 late final FireAtlas iceEffects;
 
+List<int> levelsUnlocked = [1];
+List<int> wonLevels = [];
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   fireEffects = await FireAtlas.loadAsset('fire_effects.fa');
@@ -122,7 +125,10 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     });
   }
 
-  void loadNewLevel(List<GamePlatform> platforms) {
+  late int levelId;
+
+  void loadNewLevel(int levelId, List<GamePlatform> platforms) {
+    this.levelId = levelId;
     resetLevel();
     player = PlayerComponent();
     add(player);
@@ -159,7 +165,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     heartRegularAnimation = health.getAnimation('health_normal_animation');
     heartDieAnimation = healthDie.getAnimation('die');
 
-    loadNewLevel(levelOne(this));
+    loadNewLevel(1, levelOne(this));
     overlays.add(filterOverlay);
     overlays.add(startMenu);
 
@@ -821,6 +827,9 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
         );
 
         if (gameWon) {
+          levelsUnlocked.add(game.levelId + 1);
+          wonLevels.add(game.levelId);
+
           async.Timer(const Duration(seconds: 1), () {
             game.overlays.add(gameWonOverlayIdentifier);
           });
@@ -1047,8 +1056,6 @@ class _StartMenuState extends State<StartMenu> {
           children: [
             Positioned.fill(
               child: BackdropFilter(
-                //grey scale
-
                 filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                 blendMode: BlendMode.saturation,
                 child: Container(
@@ -1282,11 +1289,13 @@ class LevelPreview extends StatelessWidget {
   const LevelPreview({
     required this.image,
     required this.onCall,
+    required this.id,
     super.key,
   });
 
   final String image;
   final VoidCallback onCall;
+  final int id;
 
   @override
   Widget build(BuildContext context) {
@@ -1296,7 +1305,7 @@ class LevelPreview extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: Colors.red,
+          color: Colors.green,
           border: Border.all(
             width: 5,
           ),
@@ -1333,6 +1342,24 @@ class LevelPreview extends StatelessWidget {
                   ),
                 ),
               ),
+              if (wonLevels.contains(id))
+                Positioned(
+                  right: 20,
+                  top: 20,
+                  child: Center(
+                    child: ClipOval(
+                      child: SizedBox(
+                        height: 32,
+                        width: 32,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/won.gif',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -1491,32 +1518,76 @@ class _OverlayCommonState extends State<OverlayCommon> {
         Wrap(
           runSpacing: 20,
           children: [
-            LevelPreview(
-              image: '',
-              onCall: () {
-                widget.game.overlays.remove(widget.overlayId);
-                widget.game.loadNewLevel(levelOne(widget.game));
-              },
+            if (levelsUnlocked.contains(1))
+              LevelPreview(
+                image: '',
+                id: 1,
+                onCall: () {
+                  widget.game.overlays.remove(widget.overlayId);
+                  widget.game.loadNewLevel(1, levelOne(widget.game));
+                },
+              ),
+            const SizedBox(
+              width: 20,
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  IgnorePointer(
+                    ignoring: !levelsUnlocked.contains(2),
+                    child: LevelPreview(
+                      image: '',
+                      id: 2,
+                      onCall: () {
+                        widget.game.overlays.remove(widget.overlayId);
+                        widget.game.loadNewLevel(2, levelTwo(widget.game));
+                      },
+                    ),
+                  ),
+                  if (!levelsUnlocked.contains(2))
+                    Positioned.fill(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                        blendMode: BlendMode.saturation,
+                        child: Container(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(
               width: 20,
             ),
-            LevelPreview(
-              image: '',
-              onCall: () {
-                widget.game.overlays.remove(widget.overlayId);
-                widget.game.loadNewLevel(levelTwo(widget.game));
-              },
-            ),
-            const SizedBox(
-              width: 20,
-            ),
-            LevelPreview(
-              image: '',
-              onCall: () {
-                widget.game.overlays.remove(widget.overlayId);
-                widget.game.loadNewLevel(levelThree(widget.game));
-              },
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  IgnorePointer(
+                    ignoring: !levelsUnlocked.contains(3),
+                    child: LevelPreview(
+                      image: '',
+                      id: 3,
+                      onCall: () {
+                        widget.game.overlays.remove(widget.overlayId);
+                        widget.game.loadNewLevel(3, levelThree(widget.game));
+                      },
+                    ),
+                  ),
+                  if (!levelsUnlocked.contains(3))
+                    Positioned.fill(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                        blendMode: BlendMode.saturation,
+                        child: Container(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(
               width: 20,
