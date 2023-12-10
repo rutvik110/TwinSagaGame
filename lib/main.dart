@@ -47,6 +47,9 @@ void main() async {
             game: game! as MyGame,
           );
         },
+        filterOverlay: (context, game) {
+          return const FilterOverlay();
+        },
       },
     ),
   );
@@ -148,8 +151,10 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
 
     heartRegularAnimation = health.getAnimation('health_normal_animation');
     heartDieAnimation = healthDie.getAnimation('die');
+
     loadNewLevel(levelOne(this));
-    overlays.add(startMenu);
+    overlays.add(filterOverlay);
+    // overlays.add(startMenu);
 
     return super.onLoad();
   }
@@ -1006,6 +1011,23 @@ class _RestartGameState extends State<RestartGame> {
   }
 }
 
+const filterOverlay = 'filterOverlay';
+
+class FilterOverlay extends StatelessWidget {
+  const FilterOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+        blendMode: BlendMode.saturation,
+        child: Container(),
+      ),
+    );
+  }
+}
+
 class StartMenu extends StatefulWidget {
   const StartMenu({
     required this.game,
@@ -1110,7 +1132,7 @@ class _StartMenuState extends State<StartMenu> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.overlays.remove(startMenu);
                               widget.game.loadNewLevel(levelOne(widget.game));
                               widget.game.paused = false;
                             },
@@ -1121,7 +1143,7 @@ class _StartMenuState extends State<StartMenu> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.overlays.remove(startMenu);
                               widget.game.loadNewLevel(levelTwo(widget.game));
                               widget.game.paused = false;
                             },
@@ -1132,7 +1154,7 @@ class _StartMenuState extends State<StartMenu> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.overlays.remove(startMenu);
                               widget.game.loadNewLevel(levelThree(widget.game));
                               widget.game.paused = false;
                             },
@@ -1260,7 +1282,7 @@ class _GameWonState extends State<GameWon> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.overlays.remove(gameWonOverlayIdentifier);
                               widget.game.loadNewLevel(levelOne(widget.game));
                               widget.game.paused = false;
                             },
@@ -1271,7 +1293,7 @@ class _GameWonState extends State<GameWon> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.overlays.remove(gameWonOverlayIdentifier);
                               widget.game.loadNewLevel(levelTwo(widget.game));
                               widget.game.paused = false;
                             },
@@ -1282,7 +1304,7 @@ class _GameWonState extends State<GameWon> {
                           LevelPreview(
                             image: '',
                             onCall: () {
-                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.overlays.remove(gameWonOverlayIdentifier);
                               widget.game.loadNewLevel(levelThree(widget.game));
                               widget.game.paused = false;
                             },
