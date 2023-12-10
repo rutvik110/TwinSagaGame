@@ -1252,6 +1252,7 @@ class _PauseMenuState extends State<PauseMenu> {
                         },
                         child: DecoratedBox(
                           decoration: BoxDecoration(
+                            color: Colors.blue,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               width: 2,
