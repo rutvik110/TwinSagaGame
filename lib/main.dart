@@ -343,7 +343,7 @@ class GamePlatform extends RectangleComponent with HasGameReference<MyGame>, Col
 
     if (!isHot) {
       snowFlakes = List<SpriteAnimationComponent>.generate(
-        15,
+        10,
         (index) => SpriteAnimationComponent(
           animation: game.icePlatformAnimation,
           position: Vector2(
@@ -590,10 +590,10 @@ class PlayerComponent extends CircleComponent with HasGameReference<MyGame>, Col
         healthBar.add(dieOutAnimation);
 
         stopAttacksTimer = async.Timer(const Duration(milliseconds: 3100), () {
-          if (endGame) {
-            game.overlays.add(pauseOverlayIdentifier);
-            game.paused = true;
-          }
+          // if (endGame) {
+          //   game.overlays.add(pauseOverlayIdentifier);
+          //   game.paused = true;
+          // }
         });
 
         playerSprite.add(
@@ -936,6 +936,34 @@ List<GamePlatform> levelOne(MyGame game) {
 }
 
 List<GamePlatform> levelTwo(MyGame game) {
+  final size = game.size;
+  return List.from([
+    GamePlatform(
+      size: Vector2(size.x, defaultPlatformSize.y),
+      position: Vector2(0, size.y - 25),
+      enableEnemy: false,
+      isHot: false,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 - (defaultPlatformSize.x) * 2, size.y - 600),
+      enableEnemy: true,
+      isHot: false,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 - defaultPlatformSize.x / 2, size.y - 400),
+      enableEnemy: true,
+    ),
+    GamePlatform(
+      size: defaultPlatformSize,
+      position: Vector2(size.x / 2 + (defaultPlatformSize.x), size.y - 200),
+      enableEnemy: true,
+    ),
+  ]);
+}
+
+List<GamePlatform> levelThree(MyGame game) {
   final size = game.size;
   return List.from([
     GamePlatform(
