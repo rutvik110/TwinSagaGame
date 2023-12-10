@@ -160,12 +160,9 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   Future<void> onLoad() async {
     FlameAudio.loop(
       'bg_music.wav',
-      volume: 0.5,
+      volume: 0.4,
     );
-    FlameAudio.play(
-      'bg_music.wav',
-      volume: 0.5,
-    );
+
     await loadImages();
 
     final health = await FireAtlas.loadAsset('health.fa');
