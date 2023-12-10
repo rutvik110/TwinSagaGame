@@ -897,31 +897,6 @@ class _RestartGameState extends State<RestartGame> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () {
-                          widget.game.overlays.remove(pauseOverlayIdentifier);
-                          widget.game.loadNewLevel(levelTwo(widget.game));
-                          widget.game.paused = false;
-                        },
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Image.asset(
-                              'assets/restart_icon.png',
-                              height: 64,
-                              width: 64,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
