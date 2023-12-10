@@ -42,6 +42,11 @@ void main() async {
             game: game! as MyGame,
           );
         },
+        gameWonOverlayIdentifier: (context, game) {
+          return GameWon(
+            game: game! as MyGame,
+          );
+        },
       },
     ),
   );
@@ -754,6 +759,9 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
   @override
   void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
     if (other is Bullet) {
+      final enemies = game.children.whereType<Enemy>().toList();
+      final gameWon = enemies.length == 1;
+
       if (other.isHot != isOnHotPlatform && other.isPlayerBullet) {
         removeFromParent();
 
@@ -766,6 +774,12 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
             removeOnFinish: true,
           ),
         );
+
+        if (gameWon) {
+          async.Timer(const Duration(seconds: 1), () {
+            game.overlays.add(gameWonOverlayIdentifier);
+          });
+        }
       }
     }
     super.onCollisionStart(intersectionPoints, other);
@@ -1005,6 +1019,156 @@ class StartMenu extends StatefulWidget {
 }
 
 class _StartMenuState extends State<StartMenu> {
+  @override
+  void initState() {
+    super.initState();
+    widget.game.startGame = false;
+  }
+
+  @override
+  void dispose() {
+    widget.game.startGame = true;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: BackdropFilter(
+                //grey scale
+
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                blendMode: BlendMode.saturation,
+                child: Container(
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 500,
+                decoration: BoxDecoration(
+                  color: Colors.brown,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 5,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: iceEffects.getSprite('ice_player_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Align(
+                            widthFactor: 0.5,
+                            child: SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: FittedBox(
+                                child: SpriteWidget(
+                                  sprite: fireEffects.getSprite('player_fire_sprite'),
+                                  srcSize: Vector2(100, 100),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // add images of final levels and allow users to load them.
+                      // unlock
+
+                      const SizedBox(
+                        height: 20,
+                      ),
+
+                      Wrap(
+                        runSpacing: 20,
+                        children: [
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.loadNewLevel(levelOne(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.loadNewLevel(levelTwo(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                          LevelPreview(
+                            image: '',
+                            onCall: () {
+                              widget.game.overlays.remove(widget.game.overlays.activeOverlays.first);
+                              widget.game.loadNewLevel(levelThree(widget.game));
+                              widget.game.paused = false;
+                            },
+                          ),
+                          const SizedBox(
+                            width: 20,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const gameWonOverlayIdentifier = 'gamewonoverlayidentifier';
+
+class GameWon extends StatefulWidget {
+  const GameWon({
+    required this.game,
+    super.key,
+  });
+
+  final MyGame game;
+
+  @override
+  State<GameWon> createState() => _GameWonState();
+}
+
+class _GameWonState extends State<GameWon> {
   @override
   void initState() {
     super.initState();
