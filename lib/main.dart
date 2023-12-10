@@ -62,6 +62,9 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
   late SpriteAnimation iceEnemyDeathAnimation;
   late SpriteAnimation iceEnemyBulletAnimation;
 
+  late SpriteAnimation fireBulletExplosionAnimation;
+  late SpriteAnimation iceBulletExplosionAnimation;
+
   @override
   Future<void> onLoad() async {
     await loadImages();
@@ -77,6 +80,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     playerFireAnimation = atlas.getAnimation('player_fire_animation');
     playerFireSparklesAnimation = atlas.getAnimation('player_fire_sparkles_animation');
     playerFireBulletAnimation = atlas.getAnimation('player_fire_bullet_animation');
+    fireBulletExplosionAnimation = atlas.getAnimation('fire_bullet_explosion_animation');
 
     icePlatformAnimation = waterEffects.getAnimation('ice_platform_animation');
     iceEnemyAnimation = waterEffects.getAnimation('ice_enemy');
@@ -85,6 +89,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
     playerIceAnimation = waterEffects.getAnimation('player_ice_animation');
     playerIceSparklesAnimation = waterEffects.getAnimation('player_ice_sparkles_animation');
     playerIceBulletAnimation = waterEffects.getAnimation('player_ice_bullet_animation');
+    iceBulletExplosionAnimation = waterEffects.getAnimation('ice_bullet_explosion_animation');
 
     addAll([
       player,
@@ -172,6 +177,7 @@ class MyGame extends FlameGame with HasCollisionDetection, KeyboardEvents, HasKe
               isHot: player.isOnHotPlatform,
               fireAngle: player.direction.angleInRadians,
               bulletAnimation: player.isOnHotPlatform ? playerFireBulletAnimation : playerIceBulletAnimation,
+              isPlayerBullet: true,
             ),
           );
           timer = async.Timer(const Duration(milliseconds: 300), () {});
@@ -310,6 +316,7 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
     required this.isHot,
     required this.fireAngle,
     required this.bulletAnimation,
+    required this.isPlayerBullet,
     Vector2? position,
   }) : super(
           position: position ?? Vector2(0, 0),
@@ -320,6 +327,7 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
   final double fireAngle;
   late final SpriteAnimationComponent bullet;
   final SpriteAnimation bulletAnimation;
+  final bool isPlayerBullet;
 
   @override
   Future<void> onLoad() {
@@ -358,6 +366,24 @@ class Bullet extends CircleComponent with HasGameReference<MyGame>, CollisionCal
       removeFromParent();
       bullet.removeFromParent();
     }
+  }
+
+  @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+    if ((other is PlayerComponent && !isPlayerBullet) || (other is Enemy && isPlayerBullet)) {
+      removeFromParent();
+      bullet.removeFromParent();
+      game.add(
+        SpriteAnimationComponent(
+          animation: isHot ? game.fireBulletExplosionAnimation : game.iceBulletExplosionAnimation,
+          removeOnFinish: true,
+          position: other.center,
+          size: size,
+        ),
+      );
+    }
+
+    super.onCollisionStart(intersectionPoints, other);
   }
 }
 
@@ -529,6 +555,7 @@ class Enemy extends CircleComponent with HasGameReference<MyGame>, CollisionCall
           position: position,
           fireAngle: angle,
           bulletAnimation: isOnHotPlatform ? game.fireBulletAnimation : game.iceEnemyBulletAnimation,
+          isPlayerBullet: false,
         );
 
         game.add(bullet);
